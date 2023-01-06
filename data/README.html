@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.0.36">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>readme</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+<script src="README_files/libs/clipboard/clipboard.min.js"></script>
+<script src="README_files/libs/quarto-html/quarto.js"></script>
+<script src="README_files/libs/quarto-html/popper.min.js"></script>
+<script src="README_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="README_files/libs/quarto-html/anchor.min.js"></script>
+<link href="README_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="README_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="README_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="README_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="README_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+<ul>
+<li>Format: 7zipped</li>
+<li>Files:
+<ul>
+<li><strong>badges</strong>.xml
+<ul>
+<li>UserId, e.g.: “420”</li>
+<li>Name, e.g.: “Teacher”</li>
+<li>Date, e.g.: “2008-09-15T08:55:03.923”</li>
+</ul></li>
+<li><strong>comments</strong>.xml
+<ul>
+<li>Id</li>
+<li>PostId</li>
+<li>Score</li>
+<li>Text, e.g.: “<span class="citation" data-cites="Stu">@Stu</span> Thompson: Seems possible to me - why not try it?”</li>
+<li>CreationDate, e.g.:“2008-09-06T08:07:10.730”</li>
+<li>UserId</li>
+</ul></li>
+<li><strong>posts</strong>.xml
+<ul>
+<li>Id</li>
+<li>PostTypeId
+<ul>
+<li>1: Question</li>
+<li>2: Answer</li>
+</ul></li>
+<li>ParentID (only present if PostTypeId is 2)</li>
+<li>AcceptedAnswerId (only present if PostTypeId is 1)</li>
+<li>CreationDate</li>
+<li>Score</li>
+<li>ViewCount</li>
+<li>Body</li>
+<li>OwnerUserId</li>
+<li>LastEditorUserId</li>
+<li>LastEditorDisplayName=“Jeff Atwood”</li>
+<li>LastEditDate=“2009-03-05T22:28:34.823”</li>
+<li>LastActivityDate=“2009-03-11T12:51:01.480”</li>
+<li>CommunityOwnedDate=“2009-03-11T12:51:01.480”</li>
+<li>ClosedDate=“2009-03-11T12:51:01.480”</li>
+<li>Title=</li>
+<li>Tags=</li>
+<li>AnswerCount</li>
+<li>CommentCount</li>
+<li>FavoriteCount</li>
+</ul></li>
+<li><strong>posthistory</strong>.xml
+<ul>
+<li>Id</li>
+<li>PostHistoryTypeId
+<ul>
+<li>1: Initial Title - The first title a question is asked with.</li>
+<li>2: Initial Body - The first raw body text a post is submitted with.</li>
+<li>3: Initial Tags - The first tags a question is asked with.</li>
+<li>4: Edit Title - A question’s title has been changed.</li>
+<li>5: Edit Body - A post’s body has been changed, the raw text is stored here as markdown.</li>
+<li>6: Edit Tags - A question’s tags have been changed.</li>
+<li>7: Rollback Title - A question’s title has reverted to a previous version.</li>
+<li>8: Rollback Body - A post’s body has reverted to a previous version - the raw text is stored here.</li>
+<li>9: Rollback Tags - A question’s tags have reverted to a previous version.</li>
+<li>10: Post Closed - A post was voted to be closed.</li>
+<li>11: Post Reopened - A post was voted to be reopened.</li>
+<li>12: Post Deleted - A post was voted to be removed.</li>
+<li>13: Post Undeleted - A post was voted to be restored.</li>
+<li>14: Post Locked - A post was locked by a moderator.</li>
+<li>15: Post Unlocked - A post was unlocked by a moderator.</li>
+<li>16: Community Owned - A post has become community owned.</li>
+<li>17: Post Migrated - A post was migrated.</li>
+<li>18: Question Merged - A question has had another, deleted question merged into itself.</li>
+<li>19: Question Protected - A question was protected by a moderator</li>
+<li>20: Question Unprotected - A question was unprotected by a moderator</li>
+<li>21: Post Disassociated - An admin removes the OwnerUserId from a post.</li>
+<li>22: Question Unmerged - A previously merged question has had its answers and votes restored.</li>
+</ul></li>
+<li>PostId</li>
+<li>RevisionGUID: At times more than one type of history record can be recorded by a single action. All of these will be grouped using the same RevisionGUID</li>
+<li>CreationDate: “2009-03-05T22:28:34.823”</li>
+<li>UserId</li>
+<li>UserDisplayName: populated if a user has been removed and no longer referenced by user Id</li>
+<li>Comment: This field will contain the comment made by the user who edited a post</li>
+<li>Text: A raw version of the new value for a given revision
+<ul>
+<li>If PostHistoryTypeId = 10, 11, 12, 13, 14, or 15 this column will contain a JSON encoded string with all users who have voted for the PostHistoryTypeId</li>
+<li>If PostHistoryTypeId = 17 this column will contain migration details of either “from <url>” or “to <url>”</url></url></li>
+</ul></li>
+<li>CloseReasonId
+<ul>
+<li>1: Exact Duplicate - This question covers exactly the same ground as earlier questions on this topic; its answers may be merged with another identical question.</li>
+<li>2: off-topic</li>
+<li>3: subjective</li>
+<li>4: not a real question</li>
+<li>7: too localized</li>
+</ul></li>
+</ul></li>
+<li><strong>postlinks</strong>.xml
+<ul>
+<li>Id</li>
+<li>CreationDate</li>
+<li>PostId</li>
+<li>RelatedPostId</li>
+<li>PostLinkTypeId
+<ul>
+<li>1: Linked</li>
+<li>3: Duplicate</li>
+</ul></li>
+</ul></li>
+<li><strong>users</strong>.xml
+<ul>
+<li>Id</li>
+<li>Reputation</li>
+<li>CreationDate</li>
+<li>DisplayName</li>
+<li>EmailHash</li>
+<li>LastAccessDate</li>
+<li>WebsiteUrl</li>
+<li>Location</li>
+<li>Age</li>
+<li>AboutMe</li>
+<li>Views</li>
+<li>UpVotes</li>
+<li>DownVotes</li>
+</ul></li>
+<li><strong>votes</strong>.xml
+<ul>
+<li>Id</li>
+<li>PostId</li>
+<li>VoteTypeId
+<ul>
+<li><code>1</code>: AcceptedByOriginator</li>
+<li><code>2</code>: UpMod</li>
+<li><code>3</code>: DownMod</li>
+<li><code>4</code>: Offensive</li>
+<li><code>5</code>: Favorite - if VoteTypeId = 5 UserId will be populated</li>
+<li><code>6</code>: Close</li>
+<li><code>7</code>: Reopen</li>
+<li><code>8</code>: BountyStart</li>
+<li><code>9</code>: BountyClose</li>
+<li><code>10</code>: Deletion</li>
+<li><code>11</code>: Undeletion</li>
+<li><code>12</code>: Spam</li>
+<li><code>13</code>: InformModerator</li>
+</ul></li>
+<li>CreationDate</li>
+<li>UserId (only for VoteTypeId 5)</li>
+<li>BountyAmount (only for VoteTypeId 9)</li>
+</ul></li>
+</ul></li>
+</ul>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    setTimeout(function() {
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      let href = ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const cites = ref.parentNode.getAttribute('data-cites').split(' ');
+    tippyHover(ref, function() {
+      var popup = window.document.createElement('div');
+      cites.forEach(function(cite) {
+        var citeDiv = window.document.createElement('div');
+        citeDiv.classList.add('hanging-indent');
+        citeDiv.classList.add('csl-entry');
+        var biblioDiv = window.document.getElementById('ref-' + cite);
+        if (biblioDiv) {
+          citeDiv.innerHTML = biblioDiv.innerHTML;
+        }
+        popup.appendChild(citeDiv);
+      });
+      return popup.innerHTML;
+    });
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>
