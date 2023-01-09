@@ -1,0 +1,8 @@
+
+## Streszczenie {.unnumbered}
+
+Słowa kluczowe: Big Data, Spark, AWS, EMR, S3
+
+## Summary {.unnumbered}
+
+Keywords: Big Data, Spark, AWS, EMR, S3

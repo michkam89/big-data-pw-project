@@ -1,0 +1,7 @@
+# Wstęp
+
+Celem niniejszej pracy jest utworzenie infrastruktury w chmurze obliczeniowej AWS pozwalające na wielkoskalową analizy danych  w sytemie rozproszonym (ang. _Big Data_). 
+
+Do stworzenia przykładowego projektu wykorzystano dane ze strony [_Stack Exchange_](https://stackexchange.com/) zawierającej zestawy danych pochodzące z forów społecznościoowych. Analizę ograniczono do danych pochodzących z forum o nazwie [_Beer, Wine and Spirits_](https://data.stackexchange.com/beer/queries).
+
+W niniejszej pracy ...

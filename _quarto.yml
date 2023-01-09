@@ -1,0 +1,31 @@
+project:
+  type: book
+
+book: 
+  title: "book"
+  # author: "Jane Doe"
+  # date: "1/7/2023"
+  chapters:
+    - index.qmd
+    - intro.qmd
+    - part: results.qmd
+      chapters:
+      - 00_schema.ipynb
+      - 01_preprocessing.ipynb
+      - 02_analytics.ipynb
+    - references.qmd
+
+bibliography: references.bib
+
+format:
+  html:
+    theme: cosmo
+  pdf:
+    documentclass: scrreprt
+    margin-bottom: 2cm
+    margin-right: 2cm
+    margin-top: 2cm
+    margin-left: 2.5cm
+
+
+

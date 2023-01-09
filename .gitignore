@@ -1,3 +1,5 @@
-.venv/
+/.venv/
 outputs/
 /.luarc.json
+/.quarto/
+
