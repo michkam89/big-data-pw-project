@@ -1,22 +1,26 @@
 project:
   type: book
 
+lang: pl
+language: _language.yml
+
 book: 
-  title: "book"
-  # author: "Jane Doe"
-  # date: "1/7/2023"
+  title: "Wieloskalowa analiza danych z forum internetowego przy użyciu usług chmury AWS"
+  author: "Michał Kamiński"
+  date: today
   chapters:
     - index.qmd
-    - intro.qmd
+    - part: intro.qmd
     - part: results.qmd
       chapters:
       - 00_schema.ipynb
       - 01_preprocessing.ipynb
       - 02_analytics.ipynb
     - references.qmd
+    - attachments.qmd
 
 bibliography: references.bib
-
+pdf-engine: pdflatex
 format:
   html:
     theme: cosmo
@@ -26,6 +30,4 @@ format:
     margin-right: 2cm
     margin-top: 2cm
     margin-left: 2.5cm
-
-
 

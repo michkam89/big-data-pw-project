@@ -1,0 +1,35 @@
+# Załączniki {#sec-appendix}
+
+## Polecenia budujące infrastrukturę
+
+### EMR {#sec-emr}
+
+\small
+
+```bash
+aws emr create-cluster --name="MyEMRCluster" \
+    --release-label emr-6.8.0 \
+    --applications Name=JupyterHub Name=Hadoop Name=Spark \
+    --log-uri s3://emr-logs-beer-and-wine/MyJupyterClusterLogs \
+    --use-default-roles \
+    --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m4.large InstanceGroupType=CORE,InstanceCount=2,InstanceType=m4.large \
+    --ebs-root-volume-size 32 \
+    --configurations s3://misc-beer-and-wine/emr-configurations.json \
+    --bootstrap-actions Path=s3://misc-beer-and-wine/install_python_libraries.sh,Name=InstallJupyterLibs
+```
+
+\normalsize
+
+Plik `install-my-jupyter-libraries.sh` dostępny jest pod poniższym [adresem]() 
+
+```{python}
+#| eval: false
+
+```
+
+### S3
+
+Koszyki S3 zostały utworzone przy pomocy poniższego polecenia:
+```
+aws s3api create-bucket --acl private --bucket <nazwa koszka>
+```

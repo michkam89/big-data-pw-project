@@ -3,3 +3,4 @@ outputs/
 /.luarc.json
 /.quarto/
 
+*.pem
