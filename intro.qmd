@@ -1,6 +1,12 @@
 # Wstęp
 
+
+
 ## Technologie big data
+
+Ilość przetwarzanych danych cyfrowych na świecie rośnie w tempie logarytmicznym i obecnie podawana jest w dziesiątkach zettabajtów [@bartley_2022]. Wraz ze wzrostem ilości danych niezbędne jest optymalizowanie bądź zwiększanie miejsca potrzebnego na ich przechowywanie oraz ulepszanie algorytmów pozwalających na dokonanie analiz w czasie umożliwiającym na wyciąganie wniosków i podejmowania stosownych akcji. Znaczącym usprawnieniem procesu analitycznego było opracowanie algorytmu `MapReduce` [@dean_ghhemawat_2010], wykorzystującego równoległe przetwarzanie zbiorów danych w klastrach komputerowych. Opiera się na stosowaniu dwóch "kroków". Kroku `map` odpowiada za wykonaywanie zadań w węzłach roboczych (niezależnie od siebie) a następnie kroku `reduce`, który zbiera dane z węzłów roboczych i dokonuje kroku redukcji danych poprzez np. agregację. 
+
+Klastry komputerowe mogą być wykorzystywane nie tylko do obliczeń, ale również do przechowywania danych. Platformą, która wykorzystuje rozproszony system plików jest np. Apache Hadoop [@apache_hadoop]. Dzięki temu znając zadania analityczne można podzielić dane na partycje, które będą dodatkowo usprawniały działanie poprzez ograniczenie wysyłania danych po sieci klastra.
 
 ## Formaty danych
 
@@ -12,3 +18,4 @@ Celem niniejszej pracy jest utworzenie infrastruktury w chmurze obliczeniowej AW
 Do stworzenia przykładowego projektu wykorzystano dane ze strony [_Stack Exchange_](https://stackexchange.com/) zawierającej zestawy danych pochodzące z forów społecznościoowych. Analizę ograniczono do danych pochodzących z forum o nazwie [_Beer, Wine and Spirits_](https://data.stackexchange.com/beer/queries).
 
 W niniejszej pracy ...
+ US Patent 7,650,331: "System and method for efficient large-scale data processing 

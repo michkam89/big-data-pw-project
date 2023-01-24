@@ -24,9 +24,37 @@ format:
   html:
     theme: cosmo
   pdf:
+    cite-method: biblatex
     documentclass: scrreprt
     margin-bottom: 2cm
     margin-right: 2cm
     margin-top: 2cm
     margin-left: 2.5cm
+    header-includes: |
+      \usepackage{titling}
+      \setlength{\droptitle}{-2cm}
+      \preauthor{
+        \begin{center}
+        \includegraphics[width=5in,height=4in]{images/pw_logo.jpg}\\ % cover figure
+        \Large
+      }
+      \postauthor{
+        \end{center}
+      }
+      \predate{
+        \begin{center}
+        Master of Science in Biology\\               % Degree
+        Biodiversity, Evolution and Ecology\\        % Degree stream
+        Department of Biological Sciences\\          % Department
+        University of Bergen\\                       % University 
+        \vspace{5mm}
+      }
+      \postdate{
 
+        \end{center}
+        \newpage
+        \mbox{}
+        \vfill
+        Cover page\\
+        \emph{Beckwithia glacialis} on Snøhetta.
+       }

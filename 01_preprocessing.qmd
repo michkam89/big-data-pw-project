@@ -2,6 +2,7 @@
 warnings: false
 execute: 
   include: false
+  freeze: auto
 ---
 
 # Wstępna obróbka danych
