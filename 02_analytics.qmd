@@ -1,0 +1,1038 @@
+---
+warnings: false
+execute: 
+  include: false
+---
+
+# Analiza danych
+
+```{python}
+from pyspark.sql import (
+    SparkSession,
+    functions as f
+    )
+from plotnine import *
+import pandas as pd
+import patchworklib as pw
+# set ggplot theme
+theme_set(theme_minimal())
+```
+
+```{python}
+spark = SparkSession.builder.appName("EDA").getOrCreate()
+posts = spark.read.format('parquet').load("outputs/posts")
+users = spark.read.format('parquet').load("outputs/users")
+```
+
+## Analiza aktywności użytkowników na forum
+
+Jako pierwsze postanowiono zbadać czy forum jest aktywne. W tym celu liczbę postów zagregowano w miesięczne insterwały i zliczono ich ilość. Pierwsza wiadomość pojawiła się na forum 2014-01-21 natomiast ostatnia 2022-06-05. Na przestrzeni tych ~8,5 roku pojawiło się 3769 postów. Z @fig-ryc2 widać, że zainteresowanie forum spadało w czasie. W rekordowych pierwszych 2 miesiącach umieszczano ich odpowiednio 413 oraz 190, natomiast pod koniec badanego okresu wartości często nie przekraczały 10.
+
+```{python}
+posts_grouped = (
+    posts
+    .filter(f.col('owner_user_id').isNotNull())
+    .groupBy(
+        f.window('creation_date', '4 weeks')
+    )
+    .agg(
+        f.sum(f.lit(1)).alias('wszystkie'),
+        f.sum(f.when(f.col('post_type_id') == 1, f.lit(1)).otherwise(f.lit(0))).alias('pytania'),
+        f.sum(f.when(f.col('post_type_id') == 2, f.lit(1)).otherwise(f.lit(0))).alias('odpowiedzi')
+    )
+    # window struct has nested columns 'start' and 'end'
+    .withColumn('date', f.col('window.start').cast('date'))
+    .orderBy('date')
+)
+
+min_max_dates = (posts
+    .filter(f.col('owner_user_id').isNotNull())
+    .agg(
+        f.min(f.col("creation_date")).alias("min_date"),
+        f.max(f.col("creation_date")).alias("max_date"),
+        f.sum(f.lit(1)).alias('count')
+    ).withColumn('min_date', f.col('min_date').cast('date')))
+
+avg_for_windows = (posts_grouped
+    .agg(
+        f.avg(f.col("wszystkie")),
+        f.stddev(f.col("wszystkie")),
+        f.percentile_approx(f.col("wszystkie"), 0.5)
+    ))
+
+# transform for plot
+posts_long = posts_grouped.toPandas().melt(id_vars=('date'), value_vars=('wszystkie', 'pytania', 'odpowiedzi'))
+```
+
+```{python}
+
+g1 = ggplot(posts_long, aes(x='date', y='value', group='variable'))\
+    + geom_line(aes(fill='variable')) \
+    + scale_x_datetime() \
+    + stat_smooth(method='loess', fill="blue") \
+    + facet_wrap('variable', ncol=1) \
+    + theme(axis_text_x=element_text(rotation=90)) \
+    + xlab("Data") \
+    + ylab("Ilość postów") 
+
+g2 = g1 + scale_y_log10() + ylab("Ilość postów (log)") 
+```
+
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc2
+#| fig-cap: "Liczba postow w czasie z podzialem na pytania i odpowiedzi. Lewy panel wskazuje surowe wartości liczby postów, prawy wartości logarytmiczne o podstawie 10."
+
+p1 = pw.load_ggplot(g1)
+p2 = pw.load_ggplot(g2)
+(p1|p2).savefig()
+```
+
+Stosunek ilości odpowiedzi do zadawanych pytań rośnie w czasie, lecz ma na to wpływ zmniejszająca się ilość zadawanych pytań (maleje próba badana) co zostało przedstawione na @fig-ryc3. Patrząc na wartości średnie tylko co drugie pytanie uzyskiwało odpowiedź (ratio 0.48 +/- 0.22). Ogólne statystyki stosunku pytań do dopowiedzi w czasie zostały przedstawione w @tbl-ratios.
+
+```{python}
+qa_ratio = (posts_grouped
+    .withColumn("ratio", f.col("pytania") / f.col("odpowiedzi"))
+    .withColumn('date', f.col('window.start').cast('date'))
+    .select(f.col("date"), f.col("ratio"), f.col("pytania"))
+    )
+
+qa_ratio_pd = qa_ratio.toPandas()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc3
+#| fig-cap: "Stosunek ilości odpowiedzi na zadane pytania w czasie, uwzględniając ilość zadanych pytań"
+g3 = ggplot(qa_ratio_pd, aes(x='date', y='ratio'))\
+    + geom_point(aes(size="pytania")) \
+    + scale_x_datetime() \
+    + geom_smooth() \
+    + theme(axis_text_x=element_text(rotation=90)) \
+    + xlab("Data") \
+    + ylab("Stosunek Pytanie/Odpowiedź")
+
+p3 = pw.load_ggplot(g3)
+p3.savefig()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-ratios
+#| tbl-cap: Statystyki stosunku ilości odpowiedzi na pytania. Bez uwzględnienia czy było ono zaakceptowane czy też nie.
+qa_ratio.agg(
+    f.avg("ratio").alias("średnia"),
+    f.stddev("ratio").alias("odchylenie standardowe"),
+    f.min("ratio").alias("min"),
+    f.max("ratio").alias("max"),
+    f.percentile_approx("ratio", 0.5).alias("mediana")
+).toPandas().head()
+```
+
+## Dynamika oraz statystyki udzielanych odpowiedzi
+
+Twórcy pytań na forum mają możliwość wybrania odpowiedzi, która jest najtrafniejsza i zawiera poprawną odpowiedź. Te odpowiedzi nazywane są zaakceptowanymi odpowiedziami. Zbadano jak często najwyżej oceniona odpowiedź nie była zaakceptowaną odpowiedzią.
+
+```{python}
+#1 - Question 2 - Answer 3 - Wiki 4 - TagWikiExcerpt 5 - TagWiki 6 - ModeratorNomination 7 -  WikiPlaceholder 8 - PrivilegeWiki
+posts_tmp = (
+    posts
+    .select(
+        f.col('id'), 
+        f.col("parent_id"),
+        f.col('accepted_answer_id'),
+        f.col('answer_count'),
+        f.col('score'),
+        f.col('post_type_id')
+    )
+)
+
+questions = posts_tmp.filter('post_type_id == 1 and answer_count > 0')\
+    .select(
+        f.col('id').alias('q_id'), 
+        f.col('accepted_answer_id')
+    )
+
+answers = posts_tmp.filter(f.col('post_type_id') == 2)\
+    .select(
+        f.col('id').alias('a_id'), 
+        f.col('parent_id'), 
+        f.col('score')
+    )
+
+from pyspark.sql import Window
+
+window_partition_agg = Window.partitionBy("q_id")
+
+questions.join(answers, on=questions.q_id == answers.parent_id)\
+    .sort(['q_id', 'a_id'])\
+    .withColumn("max_score", f.max(f.col("score")).over(window_partition_agg))\
+    .filter(f.col("score") == f.col("max_score"))\
+    .filter(f.col("accepted_answer_id").isNotNull())\
+    .withColumn("is_accepted_best", f.col("accepted_answer_id") == f.col("a_id"))\
+    .agg(
+        f.sum(f.col("is_accepted_best").cast("integer")).alias("sum"),
+        f.count(f.col("q_id")).alias("count")
+    )\
+    .withColumn("percent", (f.col("count") - f.col("sum")) / f.col("count") * 100).show()
+
+```
+
+Okazało się, że w przypadku pytań, które posiadały jakąkolwiek odpowiedź około 12.7% (646) przypadków najlepiej ocenianych odpowiedzi nie było tą, która została zaakceptowana przez autora.
+
+Następnie porównano oceny odpowiedzi zaakceptowanych z pozostałymi odpowiedziami a statystyki przedstawiono w @tbl-a_stats oraz @fig-ryc9.
+
+Pośród odpowiedzi na zadawane pytania wyróżniono 3 kategorie: 
+
+1. odpowiedź zaakceptowana (`is_accepted=True`)
+1. odpowiedź niezaakceptowana (`is_accepted=False`)
+1. odpowiedź niezaakceptowana ale równocześnie brak jest zaakceptowanej odpowiedzi na to pytanie (`is_accepted=None`)
+
+Z analizy wynika, iż zaakceptowane odpowiedzi mają średnio wyższe oceny użytkowników (6,39) niż pozostałe oceny (2.75 - `is_accepted=None`;  2.58 - `is_accepted=False`), co było oczekiwanym wynikiem.
+
+```{python}
+window_partition_agg = Window.partitionBy("q_id")
+
+a_stats_pd = questions.join(answers, on=questions.q_id == answers.parent_id)\
+    .sort(['q_id', 'a_id'])\
+    .withColumn("is_accepted", f.col("accepted_answer_id") == f.col("a_id"))\
+    .groupBy(f.col("is_accepted")).agg(
+        f.avg(f.col("score")).alias("avg_score"),
+        f.stddev(f.col("score")).alias("std_score"),
+        f.min(f.col("score")).alias("min_score"),
+        f.max(f.col("score")).alias("max_score"),
+        f.count("a_id")
+    ).toPandas()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-a_stats
+#| tbl-cap: Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych
+a_stats_pd.head()
+```
+
+```{python}
+accepted_df = questions.join(answers, on=questions.q_id == answers.parent_id)\
+    .sort(['q_id', 'a_id'])\
+    .withColumn("is_accepted", (f.col("accepted_answer_id") == f.col("a_id")).cast("string"))\
+    .withColumn("is_accepted", f.when(f.col("is_accepted").isNull(), "no accepted answer").otherwise(f.col("is_accepted"))).toPandas()
+
+dist_plot = (
+    ggplot(accepted_df, aes(x="is_accepted", y="score"))
+        + geom_boxplot()
+        + coord_flip()
+        )
+pdist_plot = pw.load_ggplot(dist_plot, (10,3))
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc9
+#| fig-cap: Rozkład ocen pytań zaakceptowanych w porównaniu do pozostałych
+pdist_plot.savefig()
+```
+
+```{python}
+# keep only questions with answers
+questions = posts.filter(f.col('post_type_id') == 1).filter(f.col('answer_count') > 0).select([f.col('id').alias('q_id'), f.col('creation_date').alias('q_creation_date'), f.col('accepted_answer_id')])
+answers  = posts.filter(f.col('post_type_id') == 2).select([f.col('id').alias('a_id'), f.col('parent_id').alias('a_parent_id'), f.col('creation_date').alias('a_creation_date')])
+#posts.show(1, vertical=True)
+time_to_accept = questions.join(answers, on=[questions.accepted_answer_id==answers.a_id])\
+    .withColumn('time_to_accept_sec', f.unix_timestamp('a_creation_date') - f.unix_timestamp('q_creation_date'))\
+    .withColumn('time_to_accept_min', f.round(f.col('time_to_accept_sec') / 60, 2))
+
+time_to_accept.agg(
+        f.avg('time_to_accept_min'),
+        f.stddev('time_to_accept_min'),
+        f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
+    ).show(truncate=False)
+
+
+time_to_accept_pd = (
+    time_to_accept
+        .withColumn('all', f.lit("all_questions"))
+        .withColumn(
+            "is_outlier", 
+            f.when(f.col("time_to_accept_min") > 100000, True).otherwise(False)
+            )).toPandas()
+
+scat_plot_time = (
+    ggplot(time_to_accept_pd, aes(x='all', y="time_to_accept_min"))
+        + geom_boxplot()
+        + geom_jitter(aes(color="is_outlier"))
+        + scale_y_log10() 
+        + coord_flip()
+        )
+pscat_plot_time = pw.load_ggplot(scat_plot_time, (10,3))
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc10
+#| fig-cap: Rozkład czasu od pojawienia się pytania do zaakceptowanej odpowiedzi
+pscat_plot_time.savefig()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-time_stats
+#| tbl-cap: Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych
+time_to_accept.agg(
+        f.avg('time_to_accept_min'),
+        f.stddev('time_to_accept_min'),
+        f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
+    ).toPandas().head()
+```
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-time_stats_no_outliers
+#| tbl-cap: Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych po odrzuceniu wartości odstających > 100000
+no_outliers = time_to_accept.filter(f.col('time_to_accept_min') < 100000)
+
+no_outliers.agg(
+        f.avg('time_to_accept_min'),
+        f.stddev('time_to_accept_min'),
+        f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
+    ).toPandas().head()
+```
+
+Następnie zbadano jak szybko od pojawienia się pytania, pojawia się zaakceptowana odpowiedź. Dla wszystkich pytań na tym forum jest to średnio 25244 minuty, ale wartość środkowa (753) sugeruje, że średnia może być zaburzona. W celu obliczenia średniej nie zaburzonej tak dużymi wartościami odstającymi odrzucono wartości powyżej 100000 minut. Tym razem uzyskano wartość 4769 minut (~3 dni), przy wartości środkowej 644 (~10 godzin).
+
+Rozkłady wartości przedstawiono na @fig-ryc10 oraz w @tbl-time_stats dla całego zbioru danych oraz @tbl-time_stats_no_outliers po odrzuceniu wartości odstających.
+
+## Retencja użytkowników
+
+W całej historii forum zarejestrowanych zostało 8948 użytkowników, z czego jedno konto jest kontem bota. Miarą retencji użytkownika na forum określono czas od utworzenia konta to ostaniej zamieszczonej wiadomości. Wśród 50 najdłużej aktywnych kont zidentyfikowano konto z wynikiem aż 3052 dni a konto z ostatnim indeksem w tej grupie miało wynik 2128 dni. Jednakże patrząc na całą populację, wartość środkowa wyniosła 11, a 50% wartości mieści się pomiędzy 0 a 594 dniami. Użytkownicy z wartością 0, są to najprawdopodobniej użytkowicy, którzy zadali jedyne pytanie na forum w dniu założenia konta (410 użytkowników). Czas na forum najdłużej aktywnych użytkowników został zwizualizowany na @fig-ryc4. Dodatkowo okazało się, że 7691 (86%) kont było biernymi użytkownikami forum i nidgy nie dodało żadnego posta.
+
+```{python}
+users = users.select(f.col('id'), f.col('creation_date'), f.col('display_name'))
+
+(users
+    .filter(f.col('id') != -1)
+    .filter(f.col('id').isNotNull())
+    .withColumn("count", f.lit(1))
+    .agg(f.sum(f.col("count")))
+    .show()
+    )
+
+posts_by_user = posts.select(
+    f.col('owner_user_id'), 
+    f.col('last_activity_date'), 
+    f.col('id').alias('post_id')
+    )
+
+never_posted = (users
+    .filter(f.col('id') != -1) # remove bots
+    .join(posts_by_user, users.id  == posts_by_user.owner_user_id, how="left" )
+    .filter(f.col('post_id').isNull()) # keep users that never posted
+    ) 
+never_posted.agg(
+    f.sum(f.lit(1)).alias("sum_rows"),
+    f.count_distinct("id")
+).show()
+
+posts_and_users_joined = (users
+    .filter(f.col('id') != -1) # remove bots
+    .join(posts_by_user, users.id  == posts_by_user.owner_user_id, how="left" )
+    .filter(f.col('post_id').isNotNull()) # remove users that never posted
+    )
+user_post_count = (posts_and_users_joined
+    .groupBy("owner_user_id")
+    .agg(
+        f.sum(f.lit(1)).alias("sum_posts")
+    )
+    )
+
+user_last_post = (posts_and_users_joined
+    .groupBy(f.col('id'), f.col('creation_date'))
+    .agg(
+        f.max(f.col('last_activity_date'))
+        )
+    )
+# time from account creation to last activity
+user_last_post = user_last_post.withColumn(
+    'diff',
+    f.datediff(
+        f.col('max(last_activity_date)'), 
+        f.col('creation_date')
+        ) 
+    )
+
+(user_last_post
+    .orderBy(f.col('diff').desc())
+    .agg(
+        f.percentile_approx("diff", [0.25, 0.5, .75])
+    )).show()
+
+user_last_post_df = (user_last_post
+    .orderBy(f.col('diff').desc())
+    .limit(50)
+    .withColumn('id_cat', f.col('id').cast('string'))
+    .toPandas()
+    )
+
+
+# add sorted categories for pretty plotting
+user_last_post_df['id_cat'] = pd.Categorical(user_last_post_df.id_cat, 
+                                             categories=user_last_post_df.id_cat)
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc4
+#| fig-cap: "Czas na forum 50 najdłużej aktywnych kont"
+
+g4 = (ggplot(user_last_post_df, aes(x='id_cat', y='diff'))
+     + geom_col()
+     + theme(axis_text_x=element_text(rotation=90))
+     + labs(x='ID użytkownika', 
+            y='Czas na forum (dni)')
+)
+p4 = pw.load_ggplot(g4, (10,5))
+p4.savefig()
+```
+
+
+```{python}
+never_posted = (users
+    .filter(f.col('id') != -1) # remove bots
+    .join(posts_by_user, users.id  == posts_by_user.owner_user_id, how="left" )
+    .filter(f.col('post_id').isNull()) # keep users that never posted
+    )
+
+never_posted.agg(
+    f.sum(f.lit(1)).alias("sum_rows"),
+    f.count_distinct("id")
+).show()
+```
+
+## Statystyki najwyżej oraz najniżej ocenianych pytań {#sec-qstats}
+
+Zbadano statystyki zadawanych pytań. Użytkownicy forum mogą oceniać pojawiające się tam pytania czego miarą jest wartość `score`. Sprawdzono, czy długość zadanego pytania ma wpływ na jego ocenę. 
+
+```{python}
+questions = (posts
+    .select(f.col('id'), 
+            f.col('body_clean'), 
+            f.col('answer_count'), 
+            f.col('view_count'), 
+            f.col('tags'), 
+            f.col('score'), 
+            f.col('post_type_id')
+           )
+    .filter(f.col('post_type_id') == 1)
+    .drop(f.col('post_type_id'))
+    )
+
+n_questions = 100
+
+top_questions = (
+    questions
+        .orderBy(f.col('score'), ascending=False)
+        .limit(n_questions)
+        .withColumn('type', f.lit('top'))
+    )
+bottom_questions = (
+    questions
+        .orderBy(f.col('score'), ascending=True)
+        .limit(n_questions)
+        .withColumn('type', f.lit('bottom'))
+    )
+
+edge_questions = top_questions.unionAll(bottom_questions)
+
+from pyspark.sql.functions import length
+edge_questions = edge_questions.withColumn('post_len', f.length(f.col('body_clean')))
+edge_questions_pd = edge_questions.toPandas()
+questions_pd = questions.withColumn('post_len', f.length(f.col('body_clean'))).withColumn('type', f.lit('all')).toPandas()
+```
+Średnia długość pytania wyniosła 415 znaków (+/- 330) a wartość środkowa 331 znaków. Najdłuższe pytanie posiadało 3133 znaki a najkrótsze jedynie 30. Statystyki przedstawiono w @tbl-q_stats.
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-q_stats
+#| tbl-cap: Statystyki długości postów
+
+(questions
+    .withColumn('post_len', f.length(f.col('body_clean')))
+    .agg(
+        f.avg("post_len").alias("średnia"),
+        f.stddev(f.col('post_len')).alias("odchylenie standardowe"),
+        f.max("post_len").alias("max"),
+        f.min("post_len").alias("min"),
+        f.percentile_approx(f.col('post_len'), 0.5).alias("mediana")
+    )
+).toPandas().head()
+```
+
+Średnio pytanie było oceniane na wartość 6.28 (+/-5.88) a wartość środkowa wyniosła 5. Najlepiej oceniane pytanie miało ocenę 67 a najgorzej -7. Statystyki zestawiono w @tbl-score_stats.
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-score_stats
+#| tbl-cap: Statystyki ocen użytkowników
+
+(questions
+    .agg(
+        f.avg("score").alias("średnia"),
+        f.stddev(f.col('score')).alias("odchylenie standardowe"),
+        f.max("score").alias("max"),
+        f.min("score").alias("min"),
+        f.percentile_approx(f.col('score'), 0.5).alias("mediana")
+    )
+).toPandas().head()
+```
+
+Zależność pomiędzy wartością `score` a długością wiadomości przedstawiono na @fig-ryc5. Ze względu na obecność dużej ilości wartości odstających obie wartości przedstawiono również w skali logarymicznej. 
+
+Nie wykryto korelacji pomiędzy tymi dwoma zmiennymi. Współczynnik korelacji wyniósł -0.048 oraz -0.018 dla wartości zlogarytmowanych.
+```{python}
+(questions
+    .withColumn('post_len', f.length(f.col('body_clean')))
+    .agg(
+        f.corr("post_len", "score"),
+        f.corr(f.log10(f.col("post_len")), f.log10(f.col("score")))
+        )
+    ).show()
+```
+
+Postanowiono dodatkowo zbadać dwie podgrupy danych dla pytań najlepiej oraz najgorzej ocenianych. Wyodrębniono po 100 pytań z każdej z grup. Wyniki dla tych grup przestwationo na @fig-ryc5 (dolny panel) oraz w @tbl-q_stats_types i @tbl-score_stats_types.
+
+W podgrupie najlepiej ocenianych pytań średnia ocena wyniosła 20.6 +/- 8.5 a w podgrupie najgorzej ocenianych 0.4 +/- 1.2. Rozdzielność tych statystyk dla tych grup była oczekiwanym wynikiem.
+
+Statystyki długości pytań nie odbiegają od siebie w znaczący sposób (średnie 349 +/- 275 najlepiej oceniane oraz 389 +/- 424 najgorzej oceniane) sugerując iż to długość pytania nie ma znaczącego wpływu na jego ocenę. 
+
+```{python}
+g6 = (
+    ggplot(
+        edge_questions_pd, 
+        aes(x = 'post_len', y = 'score', fill="type") 
+        )
+    + geom_smooth(aes(group="type"))
+    + geom_point()
+    + ggtitle("Oceny 100 najlepiej oraz najgorzej ocenianych pytań")
+)
+g6_log = g6 + scale_x_log10() + scale_y_log10()
+
+p6 = pw.load_ggplot(g6, (10,3))
+p6_log = pw.load_ggplot(g6_log, (10,3))
+```
+
+
+```{python}
+g5 = (
+    ggplot(
+        questions_pd, 
+        aes(x = 'post_len', y = 'score') 
+        )
+    + geom_smooth(fill="blue")
+    + geom_point(alpha=0.3)
+    + ggtitle("Oceny wszystkich pytań")
+)
+g5_log = g5 + scale_x_log10() + scale_y_log10()
+
+p5 = pw.load_ggplot(g5, (10,3))
+p5_log = pw.load_ggplot(g5_log, (10,3))
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc5
+#| fig-cap: Oceny pytań na forum w zależności od długości zadanego pytania
+
+((p5 | p5_log) / (p6 | p6_log)).savefig()
+```
+
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-q_stats_types
+#| tbl-cap: Statystyki długości postów z podziałem na podgrupy najlepszych i najgorszych pytań
+
+edge_questions.groupby('type')\
+    .agg(
+        f.mean(f.col('post_len')).alias('średnia'),
+        f.stddev(f.col('post_len')).alias('odchylenie standardowe'),
+        f.max(f.col('post_len')).alias("max"),
+        f.min(f.col('post_len')).alias("min"),
+        f.percentile_approx(f.col('post_len'), 0.5).alias('mediana')
+    ).toPandas().head()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-score_stats_types
+#| tbl-cap: Statystyki ocen użytkowników z podziałem na podgrupy najlepszych i najgorszych pytań
+
+edge_questions.groupby('type')\
+    .agg(
+        f.mean(f.col('score')).alias('średnia'),
+        f.stddev(f.col('score')).alias('odchylenie standardowe'),
+        f.max(f.col('score')).alias("max"),
+        f.min(f.col('score')).alias("min"),
+        f.percentile_approx(f.col('score'), 0.5).alias('mediana')
+    ).toPandas().head()
+```
+
+Zauważono również że najlepiej oceniane pytania są również częściej oglądane i mają więcej odpowiedzi niż pytania najgorzej oceniane (@fig-ryc6). Najlepiej oceniane pytania mają średnio 17 odpowiedzi podczas gdy najgorzej jedynie 4 (@tbl-answers_stats_types) oraz odpowiednio średnio 26289 i 475 wyświetleń (@tbl-views_stats_types)
+
+```{python}
+g7 = (ggplot(
+    edge_questions_pd, 
+    aes(
+        x = 'view_count', 
+        y = 'score', 
+        fill = 'type') 
+        ) 
+    + geom_point() 
+    + scale_x_log10()
+    + geom_smooth(show_legend=False)
+    )
+g8 = (ggplot(
+    edge_questions_pd, 
+    aes(
+        x = 'view_count', 
+        y = 'answer_count', 
+        fill = 'type', 
+        size = 'score') 
+        ) 
+    + geom_point() 
+    + scale_x_log10()
+    + geom_smooth(show_legend=False)
+    + ggtitle(f'Top and bottom {n_questions} questions in relation to its views and answers')
+    )
+p7 = pw.load_ggplot(g7, (10,3))
+p8 = pw.load_ggplot(g8, (10,3))
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc6
+#| fig-cap: Oceny pytań na forum w zależności od ilości wyświetleń i odpowiedzi
+
+(p8/p7).savefig()
+```
+
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-answers_stats_types
+#| tbl-cap: Statystyki ilości odpowiedzi na pytania z podziałem na podgrupy najlepszych i najgorszych pytań
+edge_questions.groupby('type')\
+    .agg(
+        f.max(f.col('answer_count')),
+        f.min(f.col('answer_count')),
+        f.mean(f.col('answer_count')).alias('mean'),
+        f.stddev(f.col('answer_count')).alias('std_dev'),
+        f.percentile_approx(f.col('answer_count'), 0.5).alias('median')
+    ).toPandas().head()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-views_stats_types
+#| tbl-cap: Statystyki ilości wyświetleń pytań z podziałem na podgrupy najlepszych i najgorszych pytań
+edge_questions.groupby('type')\
+    .agg(
+        f.max(f.col('view_count')),
+        f.min(f.col('view_count')),
+        f.mean(f.col('view_count')).alias('mean'),
+        f.stddev(f.col('view_count')).alias('std_dev'),
+        f.percentile_approx(f.col('view_count'), 0.5).alias('median')
+    ).toPandas().head()
+```
+
+## Analiza znaczników (tagów)
+```{python}
+# source https://gist.github.com/dannymeijer/be3534470b205280e52dbbcbb19a9670
+from pyspark.sql import DataFrame
+from pyspark.sql import functions as f
+
+
+def regexp_extract_all(
+    df: DataFrame,
+    regex: str,
+    no_of_extracts: int,
+    input_column_name: str,
+    output_column_name: str = "output",
+    empty_array_replace: bool = True,
+):
+    """Pyspark implementation for extracting all matches of a reg_exp_extract
+    
+    Background
+    ----------
+    The regular implementation of regexp_extract (as part of pyspark.sql.functions module)
+    is not capable of returning more than 1 match on a regexp string at a time. This 
+    function can be used to circumvent this limitation.
+    
+    How it works
+    ------------
+    You can specify a `no_of_extracts` which will essentially run the regexp_extract 
+    function that number of times on the `input_column` of the `df` (`DataFrame`). 
+    In between extracts, a set of interim columns are created where every 
+    intermediate match is stored. A distinct array is created from these matches, 
+    after which the interim columns are dropped. The resulting array is stored in 
+    the defined `output_column`. Empty strings/values in the resulting array can 
+    optionally be dropped or kept depending on how `empty_array_replace` is set 
+    (default is True).
+    
+    Usage example
+    -------------
+    In the below example, we are extracting all email-addresses from a body of text.
+    The returned DataFrame will have a new ArrayType column added named `email_addresses`
+    
+    > # Assuming `df` is a valid DataFrame containing a column named `text`
+    > email_regex = r"[\w.-]+@[\w.-]+\.[a-zA-Z]{1,}"
+    > df = regexp_extract_all(df, email_regex, 6, "text", "email_addresses", True)
+    
+    Parameters
+    ----------
+    df: DataFrame
+        Input DataFrame
+    
+    regex: str
+        Regexp string to extract from input DataFrame
+    
+    no_of_extracts: int
+        Max number of occurrences to extract
+    
+    input_column_name: str
+        Name of the input column
+    
+    output_column_name: str
+        Name of the output column (default: output)
+    
+    empty_array_replace: bool
+        If set to True, will replace empty arrays with null values (default: True)
+    """
+    repeats = range(0, no_of_extracts)
+
+    # A set of interim columns are created that will be dropped afterwards
+    match_columns = [f"___{r}___" for r in repeats]
+
+    # Apply regexp_extract an r number of times
+    for r in repeats:
+        df = df.withColumn(
+            match_columns[r],
+            f.regexp_extract(
+                f.col(input_column_name),
+                # the input regex string is amended with ".*?"
+                # and repeated an r number of times
+                # r needs to be +1 as matching groups are 1-indexed
+                "".join([f"{regex}.*?" for i in range(0, r + 1)]),
+                r + 1,
+            ),
+        )
+
+    # Create a distinct array with all empty strings removed
+    df = df.withColumn(
+        output_column_name,
+        f.array_remove(f.array_distinct(f.array(match_columns)), ""),
+    )
+
+    # Replace empty string with None if empty_array_replace was set
+    if empty_array_replace:
+        df = df.withColumn(
+            output_column_name,
+            f.when(f.size(output_column_name) == 0, f.lit(None)).otherwise(
+                f.col(output_column_name)
+            ),
+        )
+
+    # Drop interim columns
+    for c in match_columns:
+        df = df.drop(c)
+
+    return df
+```
+
+W celu identyfikacji tematów zapytań na forum przeanalizowano słowa kluczowe, którymi oznaczano pytania. Wyniki przedstawiono w postaci wykresu typu "Chmura słów" @fig-ryc7. Okazuje się, że użytkownicy najczęściej pytali o `wina` (134, ang. _wine_), `smak` (120, ang. _taste_), `historię` (85, ang. _history_) i o `rekomendacje` (76, ang. _recommandation_).
+
+Tę samą analizę wykonano na grupie 100 najlepiej i najgorzej ocenianych pytań badanych w @sec-qstats. W pierwszej grupie najczęściej używano znaczników `smak` (17) oraz `warzenie` (14, ang. _brewing_), w drugiej natomiast najczęściej pytano o `wina` (20), `rekomendacje` (15) i `zdrowie` (12, ang. _health_).
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc7
+#| fig-cap: Chmura słów przedstawiająca najczęściej używane znaczniki na forum
+questions_tags_split = (
+    regexp_extract_all(questions, r'<(\w+)>', 99, "tags", "tags_split", True)
+    .select(f.col('tags_split'))
+    )
+questions_tags_split_rdd = questions_tags_split.rdd
+
+tags_rdd = questions_tags_split_rdd.flatMap(lambda x: [y if y is not None else "" for y in x])\
+    .flatMap(lambda x: [x[y] for y in range(0, len(x))])
+
+x = tags_rdd.collect()
+tags_str = ''
+for y in range(len(x)):
+    tags_str += f"{x[y]} "
+
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+wc = WordCloud(background_color ='white').generate(tags_str)
+plt.figure(figsize = (4, 4), facecolor = None)
+plt.imshow(wc)
+plt.axis("off")
+plt.tight_layout(pad = 0)
+plt.show()
+```
+
+```{python}
+# count tags overall
+(questions_tags_split_rdd
+    .flatMap(lambda x: [y if y is not None else "" for y in x])\
+    .flatMap(lambda x: [x[y] for y in range(0, len(x))])\
+    .map(lambda x: (x, 1))\
+    .aggregateByKey(0, (lambda acc,x: acc + x ), (lambda acc1,acc2: acc1+acc2))\
+    .filter(lambda x: x[1] > 1)\
+    .sortBy(lambda x: x[1], ascending=False)\
+    .take(10)
+    )
+```
+
+```{python}
+#count tags edge groups
+
+edge_questions = regexp_extract_all(edge_questions, r'<(\w+)>', 99, "tags", "tags_split", True)
+h = edge_questions.filter(f.col('type') == 'top').select(f.col('tags_split')).rdd
+l = edge_questions.filter(f.col('type') == 'bottom').select(f.col('tags_split')).rdd
+
+h.flatMap(lambda x: [y if y is not None else "" for y in x])\
+    .flatMap(lambda x: [x[y] for y in range(0, len(x))])\
+    .map(lambda x: (x, 1))\
+    .aggregateByKey(0, (lambda acc,x: acc + x ), (lambda acc1,acc2: acc1+acc2))\
+    .filter(lambda x: x[1] > 1)\
+    .sortBy(lambda x: x[1], ascending=False)\
+    .take(10)
+
+l.flatMap(lambda x: [y if y is not None else "" for y in x])\
+    .flatMap(lambda x: [x[y] for y in range(0, len(x))])\
+    .map(lambda x: (x, 1))\
+    .aggregateByKey(0, (lambda acc,x: acc + x ), (lambda acc1,acc2: acc1+acc2))\
+    .filter(lambda x: x[1] > 1)\
+    .sortBy(lambda x: x[1], ascending=False)\
+    .take(10)
+```
+
+Następnie sprawdzono, które ze znaczników nie tylko były najczęściej używane, lecz które generowały najwięcej wyświetleń. W tym celu zsumowano liczbę wyświetleń wszystkich zapytań na forum, w którym pojawił się dany znacznik (@tbl-tags_views). Znaczniki `taste` oraz `health` generują najwięcej wyświetleń na tym forum w ilości 1349051 oraz 1316064, na dalszych miejscach znajdują się znaczniki `preservation` (686106), `storage` (558949) oraz `whiskey`(470841).
+
+```{python}
+tags_views = posts.select(['tags', 'view_count'])
+tags_views_agg = regexp_extract_all(tags_views, r'<(\w+)>', 99, "tags", "tags_split", True)\
+    .select([f.explode(f.col('tags_split')).alias("tag"), f.col("view_count")])\
+    .filter(f.col("view_count").isNotNull())\
+    .groupBy('tag')\
+    .agg(
+        f.sum("view_count").alias("sum_views")
+    )
+
+tag_top_views = tags_views_agg.orderBy("sum_views", ascending=False).limit(10)
+tag_top_views_list = tag_top_views.collect()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-tags_views
+#| tbl-cap: Sumaryczne ilości wyświetleń wiadomości zawierających dany znacznik. Przedstawiono 10 najpopularniejszych znaczników.
+
+tag_top_views_pd = pd.DataFrame(tag_top_views_list)
+tag_top_views_pd.columns = ["tag", "sum_views"]
+tag_top_views_pd.head(10)
+```
+
+Zbadano również czy wykorzystanie najczęściej używanych znaczników zmieniało się w czasie istnienia forum. Z danych zaprezentowanych na @fig-ryc8 można zaobserwować że niektóre znaczniki takie jak `spirits`, `bourbon` czy `whiskey` zaczęły być używane dopiero około roku 2016 - około 2 lata po pierwszej wiadomości na forum. W danych zauważono również, że częstość używania znaczników jest skokowa. Może to być związane z ogólną małą ilością postów zamieszczanych na forum. Wyjątek stanowią najpopularniejsze znaczniki, takie jak `taste` czy `health`, których częstość występowania jest bardziej regularna.
+
+```{python}
+posts_tmp = posts.select(f.col('id'), f.col('creation_date'), f.col('tags'))
+
+posts_tags_time = regexp_extract_all(posts_tmp, r'<(\w+)>', 99, "tags", "tags_split", True)\
+    .withColumn('tag', f.explode(f.col('tags_split')))\
+    .filter(f.col("tag").isNotNull())
+
+top_posts_tags_time = (
+    posts_tags_time
+        .join(
+            tag_top_views,
+            on="tag",
+            how="inner")
+        .select(
+            f.col('id'),
+            f.col('tag'), 
+            f.col('creation_date')
+        ).distinct()
+    )
+top_posts_tags_time_agg = top_posts_tags_time.groupBy(
+        f.window('creation_date', '4 weeks'), f.col("tag")
+    ) \
+    .agg(
+        f.sum(f.lit(1)).alias('count')
+    )\
+    .withColumn('date', f.col('window.start').cast('date'))
+
+top_posts_tags_time_agg_pd = top_posts_tags_time_agg.toPandas()
+```
+
+```{python}
+from pyspark.sql.window import Window
+w1=Window().partitionBy('tag').orderBy("date").rangeBetween(Window.unboundedPreceding, 0)
+top_posts_tags_time_agg_cum_sum_pd = top_posts_tags_time_agg.withColumn('cumsum_value', f.sum("count").over(w1)).toPandas()
+```
+
+
+```{python}
+g9 = (ggplot(top_posts_tags_time_agg_pd, aes("date", "count", color="tag"))\
+    + scale_x_datetime()\
+    + geom_line(group="tag", show_legend=False) \
+    + theme(
+        axis_text_x=element_text(rotation=90),
+        title=element_text(size=30),
+        strip_text=element_text(size=20)
+        )
+    + facet_wrap("~tag", nrow=2)
+    + ggtitle("Suma postów z danym tagiem w czasie")
+    )
+p9 = pw.load_ggplot(g9, (30, 8))
+```
+
+```{python}
+g10 = (ggplot(top_posts_tags_time_agg_cum_sum_pd, aes("date", "cumsum_value", color="tag"))\
+    + scale_x_datetime()\
+    + geom_step(group="tag", show_legend=False) \
+    + theme(
+        axis_text_x=element_text(rotation=90),
+        title=element_text(size=30),
+        strip_text=element_text(size=20)
+        )
+    + facet_wrap("~tag", nrow=2)
+    + ggtitle("Kumulatywna suma postów z danym tagiem w czasie")
+    )
+p10 = pw.load_ggplot(g10, (30, 8))
+```
+
+
+```{python}
+#| include: true
+#| echo: false
+#| label: fig-ryc8
+#| fig-cap: Liczba postów w czasie dla każdego z najczęściej wyświetlanych znaczników. Wartości zagregowane na poziomie miesięcy. Górny panel przedstawia wartości miesięczne, dolny natomiast miesięczną sumę kumulatywną.
+
+(p9 / p10).savefig() 
+```
+
+## Analiza tytułów postów
+
+Dodatkową metodą, oprócz analizy znaczkików, którą można wykorzystać w celu zbadania tematów poruszanych na forum może być analiza najczęściej pojawiających się słów. Można do tego wykorzystać treść tytułów wiadomości jak i ich główną treść. W niniejszej pracy skupiono się na analizie treści tytułów wiadomości, jako że bardzo często zawierają one dużo słów kluczowych.
+
+Tytuły wiadomości są nieustrukturyzowanymi ciągami znaków, z tego powodu do ich analizy wykorzystano powszechnie używane narzędzia stosowane przy analizach NLP (ang. _**N**atural **L**anguage **P**rocessing_). Proces zastosowanej tutaj analizy tekstu składał się z 4 kroków:
+
+1. Wyodrębnienia tokenów
+1. Usunięcia tokenów o długości znaku 1
+1. Usunięcia tokenów nie niosących informacji o treści (ang. _stop words_)
+1. Ujednolicenia różych form danego wyrazu poprzez zabieg stemming'u (ang. _stemming_), mającego na celu ucinanie końcówek wyrazów (tokenów) i pozostawieniu jedynie jego wartości bazowej. 
+
+```{python}
+from bs4 import BeautifulSoup
+from html import unescape
+from pyspark.sql.functions import udf, regexp_replace
+from pyspark.sql.types import *
+# remove html tags
+def tags_remove(s):
+    soup = BeautifulSoup(unescape(s), 'lxml')
+    return soup.text
+
+udf_tags_remove = udf(lambda m: tags_remove(m))
+# this should be moved into preprocessing part!
+titles = posts.filter(f.col("title").isNotNull()).select(f.col("title"))\
+    .withColumn("title_clean", f.lower(f.col("title")))\
+    .withColumn("title_clean", regexp_replace('title_clean', "[^a-zA-Z\\s]", " "))
+
+from pyspark.ml.feature import Tokenizer, StopWordsRemover
+from nltk.stem.snowball import SnowballStemmer
+udf_filter_length = udf(lambda row: [x for x in row if len(x) > 1], ArrayType(StringType()))
+
+stemmer = SnowballStemmer(language='english')
+def array_stemmer(stem_array):
+    a = []
+    for x in stem_array:
+        y = stemmer.stem(x)
+        a.append(y)
+    return a
+array_stemmer_udf = udf(lambda tokens: array_stemmer(tokens), ArrayType(StringType()))
+
+tokenizer = Tokenizer(inputCol='title_clean', outputCol='words_token')
+title_tokens = tokenizer.transform(titles).withColumn('words_token', udf_filter_length(f.col('words_token')))
+
+remover = StopWordsRemover(inputCol='words_token', outputCol='words_no_stop')
+title_tokens_no_stop = remover.transform(title_tokens)
+
+title_stem = title_tokens_no_stop.withColumn('words_stem', array_stemmer_udf("words_no_stop"))
+
+title_stem_pd = (title_stem
+    .select(
+        f.col("title"),
+        f.col("words_token"), 
+        f.col("words_no_stop"),
+        f.col("words_stem"))
+    .toPandas())
+```
+
+Przykładowa tabela wizualizująca tokeny surowe w porównaniu do tokenów po odfiltrowaniu słów typu `stop words` oraz tokenów krótszych niż 1 zaprezentowano na @tbl-tokens
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-tokens
+#| tbl-cap: Przykładowe rekordy danych wizualizujące proces przetwarzania tekstu. Kolejność chronologiczna kolumn `title` --> `words_token` --> `words_no_stop` --> `words_stem`
+pd.set_option('expand_frame_repr', True)
+pd.set_option("display.max_rows", 999)
+pd.set_option('max_colwidth',100)
+title_stem_pd.head(1).transpose()
+```
+
+Dzięki zabiegowi stemmingu otrzymywany jest bardziej jednorodny zestaw danych. Liczba unikalnych tokenów została zredukowana z 2055 do 1680.
+
+```{python}
+stem_exploded = title_stem.withColumn("words", f.explode(f.col("words_stem")))
+words_exploded = title_stem.withColumn("words", f.explode(f.col("words_no_stop")))
+
+stem_exploded.agg(f.count_distinct("words")).show()
+words_exploded.agg(f.count_distinct("words")).show()
+```
+
+Następnie zliczono, które tokeny pojawiają się w największej ilości tytułów i zaprezentowano w @tbl-tokens_count. Najczęściej używanymi tokenami były tokeny `beer` (476), `wine` (152) oraz `drink` (105). Wyniki pozostają w zgodzie z wnioskami uzyskanymi poprzez analizę znaczników.
+```{python}
+top_title_tokens = (stem_exploded
+     .groupBy("words")
+     .agg(f.count("title").alias('count'))
+     .orderBy('count', ascending=False)).toPandas()
+```
+
+```{python}
+#| include: true
+#| echo: false
+#| label: tbl-tokens_count
+#| tbl-cap: Zliczenia tokenów słów najczęściej pojawiających się w tytułach postów (15 najliczniejszych)
+top_title_tokens.head(15)
+```
+

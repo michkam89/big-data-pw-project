@@ -1,6 +1,8 @@
 /.venv/
+/env/
 outputs/
 /.luarc.json
 /.quarto/
 
 *.pem
+/_*.local

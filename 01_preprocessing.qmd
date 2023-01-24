@@ -1,0 +1,414 @@
+---
+warnings: false
+execute: 
+  include: false
+---
+
+# Wstępna obróbka danych
+
+::: {.content-hidden unless-profile="local"}
+```{python}
+#| eval: false
+
+# FOR LOCAL APP
+# download xml jar from bucket
+import boto3
+s3 = boto3.client('s3')
+s3.list_objects(Bucket="misc-beer-and-wine")
+
+PATH="misc/jars/spark-xml_2.12-0.15.0.jar"
+s3.download_file("misc-beer-and-wine", "spark-xml_2.12-0.15.0.jar", PATH)
+```
+:::
+
+```{python}
+from pyspark.sql import SparkSession
+PATH="misc/jars/spark-xml_2.12-0.15.0.jar"
+spark = (
+    SparkSession
+    .builder
+    .master("local[12]")
+    .appName("MyApp")
+    .config("spark.jars", PATH)
+    .getOrCreate()
+    )
+truncate_size = 60
+```
+
+## Konfiguracja aplikacji
+
+W celu przygotowania danych do analizy zostały one wstępnie przetworzone. Pierwszym etapem wstępnego przetwarzania jest wczytanie danych do środowiska analitycznego. Dane surowe, przechowywane w koszyku `raw-data-beer-and-wine` znajowały się w mało przyjaznym dla analiz formacie `xml`. Wczytanie tego typu danych wymagało załadowania dodatkowego pakietu `jar` o nazwie `spark-xml_2.12:0.15.0` pobranego z repozytorium `maven`. 
+
+W serwisie `EMR` można dodać tego typu pakiety wykorzystując specjalne polecenia typy `Sparkmagic` rozpoczynające się od znaków `%%`. W tym przypadku użyto `%%configure`:
+
+\small
+
+```{python}
+#| include: true
+#| eval: false
+
+%%configure -f
+{
+    "conf": {
+        "spark.jars.packages": "com.databricks:spark-xml_2.12:0.15.0"
+    }
+}
+```
+\normalsize
+```{python}
+#| eval: false
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName("Preprocessing").getOrCreate()
+```
+
+## Schematy danych
+
+```{python}
+from pyspark.sql.types import *
+```
+
+W celu zapewnienia wczytania danych o oczekiwanych typach oraz zapewnieniu że nie ma tam danych brakujących utworzono schematy danych, wykorzystywane w kroku wczytywania z plików `xml`. Poniżej przedstawiono schematy dla każdego z przetwarzanych plików oraz przykładowe wiersze.
+
+### Plik `Users`
+
+\small
+
+```{python}
+#| include: true
+users_schema = StructType([
+    StructField('_AboutMe', StringType(), True),
+    StructField('_AccountId', IntegerType(), True),
+    StructField('_CreationDate', TimestampType(), True),
+    StructField("_DisplayName", StringType(), True),
+    StructField("_DownVotes", IntegerType(), True),
+    StructField("_Id", IntegerType(), True),
+    StructField("_LastAccessDate", TimestampType()),
+    StructField("_Location", StringType(), True),
+    StructField("_ProfileImageUrl", StringType(), True),
+    StructField("_Reputation", IntegerType(), True),
+    StructField("_UpVotes", IntegerType(), True),
+    StructField("_Views", IntegerType(), True),
+    StructField("_WebsiteUrl", StringType(), True)
+])
+```
+
+```{python}
+#| include: true
+#| echo: false
+users = spark.read.format('xml').options(rowTag='row').schema(users_schema).load("data/Users.xml")
+users.show(1, vertical=True, truncate=truncate_size)
+```
+
+### Plik `Tags`
+
+\small
+
+```{python}
+#| include: true
+tags_schema = StructType([
+    StructField('_Count', IntegerType(), True),
+    StructField('_ExcerptPostId', IntegerType(), True),
+    StructField('_Id', IntegerType(), True),
+    StructField("_TagName", StringType(), True),
+    StructField("_WikiPostId", IntegerType(), True)
+])
+```
+```{python}
+#| include: true
+#| echo: false
+tags = spark.read.format('xml').options(rowTag='row').schema(tags_schema).load("data/Tags.xml")
+tags.show(n=5)
+```
+\normalsize
+### Plik `Votes`
+
+\small
+
+```{python}
+#| include: true
+votes_schema = StructType([
+    StructField('_BountyAmount', IntegerType(), True),
+    StructField('_CreationDate', TimestampType(), True),
+    StructField('_Id', IntegerType(), True),
+    StructField("_PostId", StringType(), True),
+    StructField("_UserId", IntegerType(), True),
+    StructField("_VoteTypeId", IntegerType(), True)
+])
+```
+```{python}
+#| include: true
+#| echo: false
+votes = spark.read.format('xml').options(rowTag='row').schema(votes_schema).load("data/Votes.xml")
+votes.show(n=5)
+```
+\normalsize
+### Plik `Posts`
+
+\small
+
+```{python}
+#| include: true
+posts_schema = StructType([
+    StructField('_AcceptedAnswerId', IntegerType(), True),
+    StructField('_AnswerCount', IntegerType(), True),
+    StructField('_Body', StringType(), True),
+    StructField("_ClosedDate", TimestampType(), True),
+    StructField("_CommentCount", IntegerType(), True),
+    StructField("_CommunityOwnedDate", TimestampType(), True),
+    StructField("_ContentLicense", StringType(), True),
+    StructField("_CreationDate", TimestampType(), True),
+    StructField("_FavoriteCount", IntegerType(), True),
+    StructField("_Id", IntegerType(), True),
+    StructField("_LastActivityDate", TimestampType(), True),
+    StructField("_LastEditDate", TimestampType(), True),
+    StructField("_LastEditorDisplayName", StringType(), True),
+    StructField("_LastEditorUserId", IntegerType(), True),
+    StructField("_OwnerDisplayName", StringType(), True),
+    StructField("_OwnerUserId", IntegerType(), True),
+    StructField("_ParentId", IntegerType(), True),
+    StructField("_PostTypeId", IntegerType(), True),
+    StructField("_Score", IntegerType(), True),
+    StructField("_Tags", StringType(), True),
+    StructField("_Title", StringType(), True),
+    StructField("_ViewCount", IntegerType(), True),
+])
+```
+```{python}
+#| include: true
+#| echo: false
+posts = spark.read.format('xml').options(rowTag='row').schema(posts_schema).load("data/Posts.xml")
+posts.show(n=1,vertical=True, truncate=truncate_size)
+```
+\normalsize
+### Plik `Post Links`
+
+\small
+
+```{python}
+#| include: true
+links_schema = StructType([
+    StructField("_CreationDate", TimestampType()),
+    StructField("_Id", IntegerType()),
+    StructField("_LinkTypeId", IntegerType()),
+    StructField("_PostId", IntegerType()),
+    StructField("_RelatedPostId", IntegerType())
+])
+```
+```{python}
+#| include: true
+#| echo: false
+links = spark.read.format('xml').options(rowTag='row').schema(links_schema).load("data/PostLinks.xml")
+links.show(n=5, truncate=False)
+```
+\normalsize
+### Plik `Post History`
+
+\small
+
+```{python}
+#| include: true
+history_schema = StructType([
+    StructField("_Comment", StringType()),
+    StructField("_ContentLicense", StringType()),
+    StructField("_CreationDate", TimestampType()),
+    StructField("_Id", IntegerType()),
+    StructField("_PostHistoryTypeId", IntegerType()),
+    StructField("_PostId", IntegerType()),
+    StructField("_RevisionGUID", StringType()),
+    StructField("_Text", StringType()),
+    StructField("_UserDisplayName", StringType()),
+    StructField("_UserId", IntegerType()),
+])
+```
+```{python}
+#| include: true
+#| echo: false
+history = spark.read.format('xml').options(rowTag='row').schema(history_schema).load("data/PostHistory.xml")
+history.show(n=1,vertical=True, truncate=truncate_size)
+```
+\normalsize
+### Plik `Badges`
+
+\small
+
+```{python}
+#| include: true
+badges_schema = StructType([
+    StructField("_Class", IntegerType()),
+    StructField("_Date", TimestampType()),
+    StructField("_Id", IntegerType()),
+    StructField("_Name", StringType()),
+    StructField("_TagBased", BooleanType()),
+    StructField("_UserId", IntegerType()),
+])
+```
+```{python}
+#| include: true
+#| echo: false
+badges = spark.read.format('xml').options(rowTag='row').schema(badges_schema).load("data/Badges.xml")
+badges.show(n=5,truncate=False)
+```
+\normalsize
+## Czyszczenie kolumn tekstowych
+
+Pliki `Users`, `History` oraz `Posts` zawierają koumny tekstowe z danymi wpisywanymi przez użytkowników oraz często zawierające znaki specjalne czy tagi html. W związku z tym kolumny `_AboutMe` (plik `Users`), `_Text` (plik `History`) oraz `_Body` (plik `Posts`) zostały poddane procesowi oczyszczania. 
+
+W tym celu utworzono funkcję `UDF` o nazwie `tags_remove()` @sec-tags-remove, która odpowiada za usunięcie tagów html.
+
+\small
+
+```{python}
+from pyspark.sql.functions import udf
+from bs4 import BeautifulSoup
+from html import unescape
+
+def tags_remove(s):
+    if s is not None:
+        soup = BeautifulSoup(unescape(s), 'lxml')
+        return soup.text
+    else: 
+        return None
+udf_tags_remove = udf(lambda m: tags_remove(m))
+```
+\normalsize
+Dodatkowo znaki `\n`, `\t`, `\r` oraz podwójne spacje zastąpiono pojedynczymi znakami spacji a także usunięto znaki spacji z początków i końców wartości tekstowych.
+
+```{python}
+from pyspark.sql.functions import regexp_replace, trim, col
+
+users_clean = users.withColumn("_AboutMe_clean", regexp_replace("_AboutMe", "\n|\t|\r", " ")) \
+    .withColumn("_AboutMe_clean", udf_tags_remove(col('_AboutMe_clean'))) \
+    .withColumn("_AboutMe_clean", regexp_replace("_AboutMe_clean", "\s{2,}", " ")) \
+    .withColumn("_AboutMe_clean", trim("_AboutMe_clean"))
+
+
+history_clean = history.withColumn("_Text_clean", regexp_replace("_Text", "\n|\t|\r", " ")) \
+    .withColumn("_Text_clean", udf_tags_remove(col('_Text_clean'))) \
+    .withColumn("_Text_clean", regexp_replace("_Text_clean", "\s{2,}", " ")) \
+    .withColumn("_Text_clean", trim("_Text_clean"))
+
+posts_clean = posts.withColumn("_Body_clean", regexp_replace("_Body", "\n|\t|\r", " ")) \
+    .withColumn("_Body_clean", udf_tags_remove(col('_Body_clean'))) \
+    .withColumn("_Body_clean", regexp_replace("_Body_clean", "\s{2,}", " ")) \
+    .withColumn("_Body_clean", trim("_Body_clean"))
+```
+
+Poniżej zaprezentowano przykłady kolumn nieoczyszczonych oraz po ich oczyszczeniu (zawierające końcówkę `_clean`):
+  
+  - Dla pliku `Users`:
+\small
+```{python}
+#| include: true
+#| echo: false
+users_clean.select(["_AboutMe", "_AboutMe_clean"]).show(5, vertical=True, truncate=truncate_size)
+```
+\normalsize
+  - Dla pliku `History`:
+\small
+```{python}
+#| include: true
+#| echo: false
+history_clean.select(["_Text", "_Text_clean"]).show(5, vertical=True, truncate=truncate_size)
+```
+\normalsize
+  - Dla pliku `Posts`:
+\small
+```{python}
+#| include: true
+#| echo: false
+posts_clean.select(["_Body", "_Body_clean"]).show(5, vertical=True, truncate=truncate_size)
+```
+Tak przygotowane dane,  w celu optymalizacji miejsca zajmowanego w koszyku S3, oraz w celu przyspieszenia procesu wczytywania danych zapisano w formacie `parquet`. Zaskutkowało to redukcją zajmowanego miejsca w koszuku o około 50%.
+\normalsize
+\small
+```{python}
+users_clean.select(
+    col("_AboutMe").alias("about_me"),
+    col("_AboutMe_clean").alias("about_me_clean"),
+    col("_CreationDate").alias("creation_date"),
+    col("_DisplayName").alias("display_name"),
+    col("_DownVotes").alias("down_votes"),
+    col("_Id").alias("id"),
+    col("_LastAccessDate").alias("last_access_date"),
+    col("_Location").alias("location"),
+    col("_ProfileImageUrl").alias("profile_image_url"),
+    col("_Reputation").alias("reputatio"),
+    col("_UpVotes").alias("up_votes"),
+    col("_Views").alias("views"),
+    col("_WebsiteUrl").alias("website_url")
+).write.mode('overwrite').format('parquet').option('path', "outputs/users").save()
+
+tags.select(
+    col("_Count").alias("count"),
+    col("_ExcerptPostId").alias("excerpt_post_id"),
+    col("_Id").alias("id"),
+    col("_TagName").alias("tag_name"),
+    col("_WikiPostId").alias("wiki_post_id"),
+).write.mode('overwrite').format('parquet').option('path', "outputs/tags").save()
+
+votes.select(
+    col("_BountyAmount").alias("bounty_amount"),
+    col("_CreationDate").alias("creation_date"),
+    col("_Id").alias("id"),
+    col("_PostId").alias("post_id"),
+    col("_UserId").alias("user_id"),
+    col("_VoteTypeId").alias("vote_type_id"),
+).write.mode('overwrite').format('parquet').option('path', "outputs/votes").save()
+
+posts_clean.select(
+    col("_AcceptedAnswerId").alias("accepted_answer_id"),
+    col("_AnswerCount").alias("answer_count"),
+    col("_Body").alias("body"),
+    col("_Body_clean").alias("body_clean"),
+    col("_ClosedDate").alias("closed_date"),
+    col("_CommentCount").alias("comment_count"),
+    col("_CommunityOwnedDate").alias("community_owned_date"),
+    col("_ContentLicense").alias("content_licence"),
+    col("_CreationDate").alias("creation_date"),
+    col("_FavoriteCount").alias("favourite_count"),
+    col("_Id").alias("id"),
+    col("_LastActivityDate").alias("last_activity_date"),
+    col("_LastEditDate").alias("last_edit_date"),
+    col("_LastEditorDisplayName").alias("last_editor_display_name"),
+    col("_LastEditorUserId").alias("last_editor_user_id"),
+    col("_OwnerUserId").alias("owner_user_id"),
+    col("_PostTypeId").alias("post_type_id"),
+    col("_ParentId").alias("parent_id"),
+    col("_Score").alias("score"),
+    col("_Tags").alias("tags"),
+    col("_Title").alias("title"),
+    col("_ViewCount").alias("view_count"),
+).write.mode('overwrite').format('parquet').option('path', "outputs/posts").save()
+
+links.select(
+    col("_CreationDate").alias("creation_date"),
+    col("_Id").alias("id"),
+    col("_LinkTypeId").alias("link_type_id"),
+    col("_PostId").alias("post_id"),
+    col("_RelatedPostId").alias("related_post_id"),
+).write.mode('overwrite').format('parquet').option('path', "outputs/post_links").save()
+
+history_clean.select(
+    col("_Comment").alias("comment"),
+    col("_ContentLicense").alias("content_license"),
+    col("_CreationDate").alias("creation_date"),
+    col("_Id").alias("id"),
+    col("_PostHistoryTypeId").alias("post_history_type_id"),
+    col("_PostId").alias("post_id"),
+    col("_RevisionGUID").alias("revision_guid"),
+    col("_Text").alias("text"),
+    col("_Text_clean").alias("text_clean"),
+    col("_UserDisplayName").alias("user_distplay_name"),
+    col("_UserId").alias("user_id"),
+).write.mode('overwrite').format('parquet').option('path', "outputs/history").save()
+
+badges.select(
+    col("_Class").alias("class"),
+    col("_Date").alias("date"),
+    col("_Id").alias("id"),
+    col("_Name").alias("name"),
+    col("_TagBased").alias("tag_based"),
+    col("_UserId").alias("user_id"),
+).write.mode('overwrite').format('parquet').option('path', "outputs/badges").save()
+```
+\normalsize

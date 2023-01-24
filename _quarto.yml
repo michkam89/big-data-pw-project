@@ -13,14 +13,13 @@ book:
     - part: intro.qmd
     - part: results.qmd
       chapters:
-      - 00_schema.ipynb
-      - 01_preprocessing.ipynb
-      - 02_analytics.ipynb
+      - 00_schema.qmd
+      - 01_preprocessing.qmd
+      - 02_analytics.qmd
     - references.qmd
     - attachments.qmd
 
 bibliography: references.bib
-pdf-engine: pdflatex
 format:
   html:
     theme: cosmo
