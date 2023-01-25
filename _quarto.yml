@@ -7,7 +7,6 @@ language: _language.yml
 book: 
   title: "Wieloskalowa analiza danych z forum internetowego przy użyciu usług chmury AWS"
   author: "Michał Kamiński"
-  date: today
   chapters:
     - index.qmd
     - part: intro.qmd
@@ -32,29 +31,28 @@ format:
     margin-left: 2.5cm
     header-includes: |
       \usepackage{titling}
-      \setlength{\droptitle}{-2cm}
-      \preauthor{
+      \setlength{\droptitle}{-3cm}
+      \pretitle{
         \begin{center}
-        \includegraphics[width=5in,height=4in]{images/pw_logo.jpg}\\ % cover figure
+        \includegraphics[width=16cm,height=2.54cm]{images/pw_logo.jpg}\\ % cover figure
+        \vspace{1cm}
+        \normalsize
+        Instytut Informatyki \\
+        \vspace{1.5cm}
         \Large
+        Studia Podyplomowe \\
+        Big Data - przetwarzanie i analiza dużych zbiorów danych \\
+        \vspace{2cm}
+        PRACA KOŃCOWA \\
+        \vspace{1cm}
       }
+      \posttitle{
+        \vspace{3cm}
+        \author{Michał Kamiński}
+        \end{center}
+        }
+      \preauthor{\begin{center}}
       \postauthor{
+        Warszawa, 2023
         \end{center}
       }
-      \predate{
-        \begin{center}
-        Master of Science in Biology\\               % Degree
-        Biodiversity, Evolution and Ecology\\        % Degree stream
-        Department of Biological Sciences\\          % Department
-        University of Bergen\\                       % University 
-        \vspace{5mm}
-      }
-      \postdate{
-
-        \end{center}
-        \newpage
-        \mbox{}
-        \vfill
-        Cover page\\
-        \emph{Beckwithia glacialis} on Snøhetta.
-       }

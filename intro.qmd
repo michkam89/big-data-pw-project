@@ -4,11 +4,113 @@
 
 ## Technologie big data
 
-Ilość przetwarzanych danych cyfrowych na świecie rośnie w tempie logarytmicznym i obecnie podawana jest w dziesiątkach zettabajtów [@bartley_2022]. Wraz ze wzrostem ilości danych niezbędne jest optymalizowanie bądź zwiększanie miejsca potrzebnego na ich przechowywanie oraz ulepszanie algorytmów pozwalających na dokonanie analiz w czasie umożliwiającym na wyciąganie wniosków i podejmowania stosownych akcji. Znaczącym usprawnieniem procesu analitycznego było opracowanie algorytmu `MapReduce` [@dean_ghhemawat_2010], wykorzystującego równoległe przetwarzanie zbiorów danych w klastrach komputerowych. Opiera się na stosowaniu dwóch "kroków". Kroku `map` odpowiada za wykonaywanie zadań w węzłach roboczych (niezależnie od siebie) a następnie kroku `reduce`, który zbiera dane z węzłów roboczych i dokonuje kroku redukcji danych poprzez np. agregację. 
+Ilość przetwarzanych danych cyfrowych na świecie rośnie w tempie logarytmicznym i obecnie podawana jest w dziesiątkach zettabajtów [@bartley_2022]. Wraz ze wzrostem ilości danych niezbędne jest optymalizowanie bądź zwiększanie miejsca potrzebnego na ich przechowywanie oraz ulepszanie algorytmów pozwalających na dokonanie analiz w czasie umożliwiającym na wyciąganie wniosków i podejmowania stosownych akcji. 
 
-Klastry komputerowe mogą być wykorzystywane nie tylko do obliczeń, ale również do przechowywania danych. Platformą, która wykorzystuje rozproszony system plików jest np. Apache Hadoop [@apache_hadoop]. Dzięki temu znając zadania analityczne można podzielić dane na partycje, które będą dodatkowo usprawniały działanie poprzez ograniczenie wysyłania danych po sieci klastra.
+Znaczącym usprawnieniem procesu analitycznego było opracowanie algorytmu `MapReduce` [@dean_ghhemawat_2010], wykorzystującego równoległe przetwarzanie zbiorów danych w klastrach komputerowych. Opiera się na stosowaniu dwóch "kroków". Kroku `map` odpowiadającego za wykonaywanie zadań w węzłach roboczych (niezależnie od siebie) a następnie kroku `reduce`, który zbiera dane z węzłów roboczych i dokonuje kroku redukcji danych poprzez np. agregację. 
+
+Klastry komputerowe mogą być wykorzystywane nie tylko do obliczeń, ale również do przechowywania danych. Platformą, która wykorzystuje rozproszony system plików jest np. `Apache Hadoop` i sytem HDFS [@apache_hadoop]. System HDFS daje możliwość na zwiększenie dostępności danych poprzez ich replikację. W przypadku niedostępności jednego z węzłów roboczych, dane są dostępne na pozostałych węzłach. Dodatkowo poprzez odpowiednie partycjonowanie danych można usprawnić działania analityczne, które ograniczą wysyłanie danych po sieci klastra [@navarro_2017].
+
+`Apache Hadoop` i `MapReduce` mają jednak swoje ograniczenia, z czego jednym z bardziej znaczących jest konieczność wczytywania danych z dysku dla każdego zadania, co jest mało wydajne przy zadaniach wykonywanych w sposób iteracyjny jak np. trenowanie modeli statystycznych z wieloma hiperparametrami [@spark_2010]. W pracy @spark_2010, zaprezentowano techologię `Spark` (obecnie `Apache Spark`), która obchodzi te ograniczenia poprzez wykorzystanie pamięci RAM oraz wprowadzenie obiektów RDD (ang. _Resilient Distributed Datasets_) [@rdd_2012]. RDD są obiektami niemodyfikowalnymi (ang. _immutable_), rozproszonymi po klastrze i co najistotniejsze przechowywane w pamięci RAM. Dzieki temu mogą być wykorzystywane wielokrotnie bez konieczności wykonywania operacji odczytu z dysku, który znacząco obniża tempo wykonywania obliczeń. Autorzy @spark_2010 szacują że `Apache Spark` jest około 10 razy szybszy niż `Apache Hadoop` w wykonywaniu iteracyjnym operacji związanych z uczeniem maszynowym.
 
 ## Formaty danych
+
+W czasach sprzed tzw. ery Big Data, dane przechowywane były (oraz często dalej są) w relacyjnych bazach danych. W najprostszym założeniu (pomijając możliwości indeksowania oraz stosowania kluczy) dane przetrzymywane są w klasycznym schemacie, jedna obserwacja - jeden wiersz, jedna cecha jedna kolumna (zobacz @tbl-logical). W jaki sposób te dane są przechowywane na dysku obrazuje za to @fig-row. Przechowywanie informacji w ten sposób powoduje, że aby dokonać agregacji cechy znajdującej się w kolumnie o nazwie `kolumna1`, algorytm musi przeskanować wszystkie wiersze wczytując je do pamięci.
+
+Rozwiązaniem, które usprawnia ten proces i wykorzystywane jest w rozwiązaniach typu Big Data jest przechowywanie danych w sposób kolumnowy, zaprezentowany na @fig-col. W tym przypadku jeżeli naszym celem jest jedynie zagregowanie cechy `kolumna1` to tylko dane z tej kolumny zostaną wczytanie do pamięci, ponieważ algorytm wie, w kórym miejscu na dysku znajdują się dane z tej kolumny. Przykładem formatów kolumnowych w systemie `Apache Hadoop` są `RCFile` oraz `ORC` a dodatkowo bardzo popularnym formatem jest format `Apache Parquet`.
+
+Dodatkową zaletą formatów kolumnowych jest kompresja danych i zwiększenie szybkości wykonywania zapytań @tbl-parquet.
+
+|         | kolumna1 | kolumna2 | kolumna3 |
+|:-------:|:--------:|:--------:|:--------:|
+| wiersz1 |     A    |     B    |     C    |
+| wiersz2 |     D    |     E    |     F    |
+| wiersz3 |     G    |     H    |     I    |
+| wiersz4 |     J    |     K    |     L    |
+
+: Zobrazowanie tabeli rozrysowanej na @fig-row oraz @fig-col{#tbl-logical}
+
+
+```{mermaid}
+%%| label: fig-row
+%%| fig-cap: Przykład wierszowego formatu danych. Kolejność wierszy przedstawia pozycję na dysku.
+%%| fig-width: 9.5
+graph TB
+    subgraph wiersz4
+        direction LR
+        J
+        K
+        L
+    end
+    subgraph wiersz3
+        direction LR
+        G
+        H
+        I
+    end
+    subgraph wiersz2
+        direction LR
+        D
+        E
+        F
+    end
+    subgraph wiersz1 
+        direction LR
+        A
+        B
+        C
+    end
+```
+```{mermaid}
+%%| label: fig-col
+%%| fig-cap: Przykład columnowego formatu danych. Kolejność wierszy przedstawia pozycję na dysku.
+%%| fig-width: 11
+graph TB
+    subgraph split2
+    direction LR
+        subgraph col4["kolumna1"]
+            direction LR
+            G
+            J
+        end
+        subgraph col5["kolumna2"]
+            direction LR
+            H
+            K
+        end
+        subgraph col6["kolumna3"]
+            direction LR
+            I
+            L
+        end
+    end
+    subgraph split1
+        subgraph kolumna1 
+            direction LR
+            A
+            D
+        end    
+        subgraph kolumna2
+            direction LR
+            B
+            E
+        end
+        subgraph kolumna3
+            direction LR
+            C
+            F
+        end
+    end
+```
+
+
+| Format         | Rozmiar danych | Czas wykonania zapytania (s) | Ilość wczytanych danch | Koszt ($)[^1] |
+|----------------|----------------|------------------------------|------------------------|-------|
+| CSV            | 1 TB           | 236                          | 1.15 TB                | 5.75 |
+| Apache Parquet | 130 GB         | 6.78 seconds                 | 2.51 GB                | 0.01 |
+
+: Porównanie formatu CSV z Apache Parquet {#tbl-parquet}
+
+[^1]: Koszt w serwisie AWS S3
 
 ## Chmury
 
@@ -17,5 +119,29 @@ Celem niniejszej pracy jest utworzenie infrastruktury w chmurze obliczeniowej AW
 
 Do stworzenia przykładowego projektu wykorzystano dane ze strony [_Stack Exchange_](https://stackexchange.com/) zawierającej zestawy danych pochodzące z forów społecznościoowych. Analizę ograniczono do danych pochodzących z forum o nazwie [_Beer, Wine and Spirits_](https://data.stackexchange.com/beer/queries).
 
-W niniejszej pracy ...
- US Patent 7,650,331: "System and method for efficient large-scale data processing 
+
+
+
+
+    # header-includes: |
+    #   \usepackage{titling}
+    
+    #   \preauthor{
+    #     \begin{center}
+    #     \includegraphics[width=16cm,height=2.54cm]{images/pw_logo.jpg}\\ % cover figure
+    #     \Large
+    #   }
+    #   \postauthor{
+    #     \end{center}
+    #   }
+    #   \predate{
+    #     \begin{center}
+    #     Master of Science in Biology\\               % Degree
+    #     Biodiversity, Evolution and Ecology\\        % Degree stream
+    #     Department of Biological Sciences\\          % Department
+    #     University of Bergen\\                       % University 
+    #     \vspace{5mm}
+    #   }
+    #   \postdate{
+    #     \end{center}
+    #    }
