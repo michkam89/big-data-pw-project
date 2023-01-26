@@ -5,24 +5,50 @@ lang: pl
 language: _language.yml
 
 book: 
-  title: "Wieloskalowa analiza danych z forum internetowego przy użyciu usług chmury AWS"
-  author: "Michał Kamiński"
+  title: "Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej"
   chapters:
-    - index.qmd
-    - part: intro.qmd
+    - part: index.qmd
     - part: results.qmd
       chapters:
       - 00_schema.qmd
       - 01_preprocessing.qmd
       - 02_analytics.qmd
-    - references.qmd
     - attachments.qmd
+  abstract: |
+    ## STRESZCZENIE {.unnumbered .unlisted}
+    W niniejszej pracy zaprezentowano przykładową infrastrukturę wykorzystującą zasoby chmury 
+    AWS (ang. _Amazon Web Services_) umożliwiającą analizę dużych zbiorów danych za pomocą klastów 
+    obliczeniowych przy użyciu serwisu AWS EMR (ang. _Elastic Map Reduce_). Zaprezentowano, jak 
+    przygotować przykładowe dane oraz dokonano wstępnej analizy danych pochodzących z repozytorium 
+    Stack Exchange przy użyciu technologii Spark, wykorzystując API w języku Python (`pySpark`)
 
+    Słowa kluczowe: __Big Data, Spark, AWS, EMR, S3__ 
+
+
+
+
+    -------------------
+
+
+
+
+
+    ## Large scale analysis of data from internet forum using cloud infrastructure resources {.unnumbered .unlisted}
+    
+    The thesis demonstrates the cloud infrastructure built using Amazon Web Services (AWS), that 
+    allows efficient analysis of large data sets (Big Data) using distributed computing system with 
+    example of AWS Elastic Map Reduce (`EMR`) service. As a demonstration of data preparation and initial 
+    analysis, python Spark API (`pySpark`) was used to analyze data from one of Stack Exchange forum. 
+
+    Keywords: __Big Data, Spark, AWS, EMR, S3__
 bibliography: references.bib
 format:
   html:
+    author: Michał Kamiński
     theme: cosmo
+    code-fold: true
   pdf:
+    keep-tex: true
     cite-method: biblatex
     documentclass: scrreprt
     margin-bottom: 2cm
@@ -31,7 +57,7 @@ format:
     margin-left: 2.5cm
     header-includes: |
       \usepackage{titling}
-      \setlength{\droptitle}{-3cm}
+      \setlength{\droptitle}{-4cm}
       \pretitle{
         \begin{center}
         \includegraphics[width=16cm,height=2.54cm]{images/pw_logo.jpg}\\ % cover figure
@@ -42,13 +68,16 @@ format:
         \Large
         Studia Podyplomowe \\
         Big Data - przetwarzanie i analiza dużych zbiorów danych \\
-        \vspace{2cm}
+        \vspace{1.5cm}
         PRACA KOŃCOWA \\
+        \vspace{2cm}
+        \Large
+        Michał Kamiński \\
         \vspace{1cm}
+        
       }
       \posttitle{
         \vspace{3cm}
-        \author{Michał Kamiński}
         \end{center}
         }
       \preauthor{\begin{center}}
