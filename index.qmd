@@ -2,19 +2,19 @@
 
 ## Technologie big data
 
-Ilość przetwarzanych danych cyfrowych na świecie rośnie w tempie logarytmicznym i obecnie podawana jest w dziesiątkach zettabajtów [@bartley_2022]. Wraz ze wzrostem ilości danych niezbędne jest optymalizowanie bądź zwiększanie miejsca potrzebnego na ich przechowywanie oraz ulepszanie algorytmów pozwalających na dokonanie analiz w czasie umożliwiającym na wyciąganie wniosków i podejmowania stosownych akcji. 
+Ilość przetwarzanych danych cyfrowych na świecie rośnie w tempie logarytmicznym i obecnie podawana jest w dziesiątkach zettabajtów [@bartley_2022]. Wraz ze wzrostem ilości danych, niezbędne jest optymalizowanie bądź zwiększanie miejsca potrzebnego na ich przechowywanie oraz ulepszanie algorytmów pozwalających na dokonanie analiz w czasie umożliwiającym na szybkie wyciąganie wniosków i podejmowania stosownych akcji. 
 
-Znaczącym usprawnieniem procesu analitycznego było opracowanie algorytmu `MapReduce` [@dean_ghhemawat_2010], wykorzystującego równoległe przetwarzanie zbiorów danych w klastrach komputerowych. Opiera się na stosowaniu dwóch "kroków". Kroku `map` odpowiadającego za wykonaywanie zadań w węzłach roboczych (niezależnie od siebie) a następnie kroku `reduce`, który zbiera dane z węzłów roboczych i dokonuje kroku redukcji danych poprzez np. agregację. 
+Znaczącym usprawnieniem procesu analitycznego opartego na dużych ilościach danych było opracowanie algorytmu `MapReduce` [@dean_ghhemawat_2010], wykorzystującego równoległe przetwarzanie zbiorów danych w klastrach komputerowych. Opiera się na stosowaniu dwóch "kroków". Kroku `map`, odpowiadającego za wykonaywanie zadań w węzłach roboczych (niezależnie od siebie) a następnie kroku `reduce`, który zbiera dane z węzłów roboczych i dokonuje kroku redukcji danych poprzez np. agregację. 
 
-Klastry komputerowe mogą być wykorzystywane nie tylko do obliczeń, ale również do przechowywania danych. Platformą, która wykorzystuje rozproszony system plików jest np. `Apache Hadoop` i sytem HDFS [@apache_hadoop]. System HDFS daje możliwość na zwiększenie dostępności danych poprzez ich replikację. W przypadku niedostępności jednego z węzłów roboczych, dane są dostępne na pozostałych węzłach. Dodatkowo poprzez odpowiednie partycjonowanie danych można usprawnić działania analityczne, które ograniczą wysyłanie danych po sieci klastra [@navarro_2017].
+Klastry komputerowe mogą być wykorzystywane nie tylko do obliczeń, ale również do przechowywania danych. Platformą, która wykorzystuje rozproszony system plików jest np. `Apache Hadoop` i sytem HDFS [@apache_hadoop]. System HDFS daje możliwość na zwiększenie dostępności danych poprzez ich replikację. W przypadku niedostępności jednego z węzłów roboczych, dane są dostępne na pozostałych węzłach w postaci kopii. Dodatkowo poprzez odpowiednie partycjonowanie danych można usprawnić działania analityczne, które ograniczą wysyłanie danych po sieci klastra [@navarro_2017].
 
-`Apache Hadoop` i `MapReduce` mają jednak swoje ograniczenia, z czego jednym z bardziej znaczących jest konieczność wczytywania danych z dysku dla każdego zadania, co jest mało wydajne przy zadaniach wykonywanych w sposób iteracyjny jak np. trenowanie modeli statystycznych z wieloma hiperparametrami [@spark_2010]. W pracy @spark_2010, zaprezentowano techologię `Spark` (obecnie `Apache Spark`), która obchodzi te ograniczenia poprzez wykorzystanie pamięci RAM oraz wprowadzenie obiektów RDD (ang. _Resilient Distributed Datasets_) [@rdd_2012]. RDD są obiektami niemodyfikowalnymi (ang. _immutable_), rozproszonymi po klastrze i co najistotniejsze przechowywane w pamięci RAM. Dzieki temu mogą być wykorzystywane wielokrotnie bez konieczności wykonywania operacji odczytu z dysku, który znacząco obniża tempo wykonywania obliczeń. Autorzy @spark_2010 szacują że `Apache Spark` jest około 10 razy szybszy niż `Apache Hadoop` w wykonywaniu iteracyjnym operacji związanych z uczeniem maszynowym.
+`Apache Hadoop` i `MapReduce` mają jednak swoje ograniczenia, z czego jednym z bardziej znaczących jest konieczność wczytywania danych z dysku dla każdego zadania. Jest to mało wydajne przy zadaniach wykonywanych w sposób iteracyjny jak np. trenowanie modeli statystycznych z wieloma hiperparametrami [@spark_2010]. W pracy @spark_2010, zaprezentowano techologię `Spark` (obecnie `Apache Spark`), która obchodzi te ograniczenia poprzez wykorzystanie dużo szybszej pamięci RAM oraz wprowadzenie obiektów RDD (ang. _Resilient Distributed Datasets_) [@rdd_2012]. RDD są obiektami niemodyfikowalnymi (ang. _immutable_), rozproszonymi po klastrze i co najistotniejsze przechowywane w pamięci RAM. Dzieki temu obiekty RDD mogą być wykorzystywane wielokrotnie bez konieczności wykonywania operacji odczytu z dysku, który znacząco obniża tempo wykonywania obliczeń. Autorzy @spark_2010 szacują że `Apache Spark` jest około 10 razy szybszy niż `Apache Hadoop` w wykonywaniu iteracyjnym operacji związanych z uczeniem maszynowym.
 
 ## Formaty danych
 
-W czasach sprzed tzw. ery Big Data, dane przechowywane były (oraz często dalej są) w relacyjnych bazach danych. W najprostszym założeniu (pomijając możliwości indeksowania oraz stosowania kluczy) dane przetrzymywane są w klasycznym schemacie, jedna obserwacja - jeden wiersz, jedna cecha jedna kolumna (zobacz @tbl-logical). W jaki sposób te dane są przechowywane na dysku obrazuje za to @fig-row. Przechowywanie informacji w ten sposób powoduje, że aby dokonać agregacji cechy znajdującej się w kolumnie o nazwie `kolumna1`, algorytm musi przeskanować wszystkie wiersze wczytując je do pamięci.
+W czasach sprzed tzw. ery Big Data, dane przechowywane były (oraz często dalej są) w relacyjnych bazach danych. W najprostszym założeniu (pomijając możliwości indeksowania oraz stosowania kluczy) dane przetrzymywane są w klasycznym schemacie, jedna obserwacja - jeden wiersz, jedna cecha - jedna kolumna (zobacz @tbl-logical). W jaki sposób te dane są przechowywane na dysku obrazuje za to @fig-row. Przechowywanie informacji w ten sposób powoduje, że aby dokonać agregacji cechy znajdującej się w kolumnie o nazwie `kolumna1`, algorytm musi przeskanować wszystkie wiersze wczytując je do pamięci.
 
-Rozwiązaniem, które usprawnia ten proces i wykorzystywane jest w rozwiązaniach typu Big Data jest przechowywanie danych w sposób kolumnowy, zaprezentowany na @fig-col. W tym przypadku jeżeli naszym celem jest jedynie zagregowanie cechy `kolumna1` to tylko dane z tej kolumny zostaną wczytanie do pamięci, ponieważ algorytm wie, w kórym miejscu na dysku znajdują się dane z tej kolumny. Przykładem formatów kolumnowych w systemie `Apache Hadoop` są `RCFile` oraz `ORC` a dodatkowo bardzo popularnym formatem jest format `Apache Parquet`.
+Rozwiązaniem, które usprawnia ten proces i jest wykorzystywane w rozwiązaniach typu Big Data jest przechowywanie danych w sposób kolumnowy, zaprezentowany na @fig-col. W tym przypadku, jeżeli naszym celem jest jedynie zagregowanie cechy `kolumna1`, to tylko dane z tej kolumny zostaną wczytanie do pamięci, ponieważ algorytm wie, w kórym miejscu na dysku znajdują się dane z tej kolumny. Przykładem formatów kolumnowych w systemie `Apache Hadoop` są `RCFile` oraz `ORC` a dodatkowo bardzo popularnym formatem jest format `Apache Parquet`.
 
 Dodatkową zaletą formatów kolumnowych jest kompresja danych i zwiększenie szybkości wykonywania zapytań @tbl-parquet.
 
@@ -60,7 +60,7 @@ graph TB
 ```
 ```{mermaid}
 %%| label: fig-col
-%%| fig-cap: Przykład columnowego formatu danych. Kolejność wierszy przedstawia pozycję na dysku.
+%%| fig-cap: Przykład kolumnowego formatu danych. Kolejność wierszy przedstawia pozycję na dysku.
 %%| fig-width: 11
 graph TB
     subgraph split2
@@ -101,18 +101,29 @@ graph TB
 ```
 
 
-| Format         | Rozmiar danych | Czas wykonania zapytania (s) | Ilość wczytanych danch | Koszt ($)[^1] |
+| Format         | Rozmiar danych | Czas wykonania zapytania (s) | Ilość wczytanych danch | Koszt ($)[^2] |
 |----------------|----------------|------------------------------|------------------------|-------|
 | CSV            | 1 TB           | 236                          | 1.15 TB                | 5.75 |
-| Apache Parquet | 130 GB         | 6.78 seconds                 | 2.51 GB                | 0.01 |
+| Apache Parquet | 130 GB         | 6.78                         | 2.51 GB                | 0.01 |
 
-: Porównanie formatu CSV z Apache Parquet {#tbl-parquet}
+: Porównanie przykładowych danych przetrzymywanych w formacie CSV oraz Apache Parquet [^1] {#tbl-parquet}
 
-[^1]: Koszt w serwisie AWS S3
+[^1]: https://www.databricks.com/glossary/what-is-parquet
+[^2]: Szacunkowe koszty przechowywania oraz analizy w serwisie chmurze AWS
 
-## Chmury
+\newpage
+
+## Wykorzystanie zasobów chmurowych
+
+W obecnych czasach, zapotrzebowanie na możliwość szybkiej analizy dużej ilości danych staje się wartością kluczową w zyskiwaniu przewagi biznesowej nad konkurencją [@team_2021]. Modele biznesowe opierające się na własnej infrastukturze bądź własnym centrum analizy danych, wymagają ciągłego wsparcia i utrzymywania, niezależnie czy w danym momencie te zasoby są wykorzystywane czy też nie. Dodatkowo, w celu zwiększenia mocy analitycznych, często niezbędny jest zakup nowych maszyn, procesorów czy dysków, co znacząco wydłuża czas do otrzymywania wyników. 
+
+Rozwiązaniemm na te problemy może wyć wykorzystanie zasobów chmurowych. Jednym z wiodących dostarczycieli takich usług są Amazon Web Services (AWS), Google Cloud Platform (GCP) czy też Microsoft Azure, ale rynek ciągle rośnie i na popularności zyskują kolejni dostawcy [@maguire_2023]. Dzięki wykorzystywaniu zasobów chmurowych użytkownicy są w stanie dynamicznie zwiększać lub zmniejszać ilość zasobów, z których korzystają. Mogą to robić w sposób manualny, lub w momencie gdy zapotrzebowanie wzrasta, skorzystać z usługi automatycznego skalowania. Użycie takiego podejścia ma uzasadnione zastosowanie w momencie gdy pewne analizy wykonywane są w większych odstępach czasu, np. co miesiąc (np. na potrzeby miesięcznych podsumowań) lub w przypadku sklepów internetowych, gdy ruch na stronach okresowo wzrasta kilkukrotnie w stosunku do przeciętnego obciążenia sieci (np. w okresach świąt Bożego Narodzenia czy tzw. Czarnego Piątku - ang. _Black Friday_). 
+
+W rozwiązaniach chmurowych użytkownik ma do wyboru czy tworzy własną infrastrukturę i odpowiada za jej utrzymywanie oraz odpowiednie aktualizacje (imituje w ten sposób posiadanie własych zasobów, np. usługa `AWS EC2` [@aws_ec2]) czy też korzysta z usług typu `serverless`, gdzie korzysta z gotowej usługi i płaci jedynie za czas jej pracy np. usługi `AWS Lambda` [@aws_lambda] czy `AWS Rekognition` [@aws_rekognition]. Korzystanie z usług `serverless` odbywa się jednak kosztem braku możliwości wpływu na sposób działania aplikacji, którą w części przypadków musi potraktować jako rozwiązanie typu `black-box`. Przykładem może być wspomniana usługa `AWS Rekognition`, która jest usługą z dziedziny uczenia maszynowego do analizy plików wideo oraz audio. Użytkownik nie wie jakie modele statystyczne odpowiadają za analizę danych oraz wynik końcowy.
 
 ## Cel pracy
 Celem niniejszej pracy jest utworzenie infrastruktury w chmurze obliczeniowej AWS pozwalające na wielkoskalową analizy danych  w sytemie rozproszonym przy użyciu technologii `Spark`. 
 
-Do stworzenia przykładowego projektu wykorzystano dane ze strony [_Stack Exchange_](https://stackexchange.com/) zawierającej zestawy danych pochodzące z forów społecznościoowych. Analizę ograniczono do danych pochodzących z forum o nazwie [_Beer, Wine and Spirits_](https://data.stackexchange.com/beer/queries).
+Do stworzenia przykładowego projektu wykorzystano dane ze strony Stack Exchange [@stack_ex] zawierającej zestawy danych pochodzące z forów społecznościoowych. Analizę ograniczono do danych pochodzących z forum o nazwie _Beer, Wine and Spirits_ [@stack_beer]
+
+Wyniki niniejszej pracy mogą posłużyć jako podstawa dla innych projektów, chcących rozszerzać wiedzę o zachowaniach użytkowników oraz poruszanej tematyki na różnych forach internetowych.

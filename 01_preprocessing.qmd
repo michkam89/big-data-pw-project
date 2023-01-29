@@ -5,7 +5,7 @@ execute:
   freeze: auto
 ---
 
-# Wstępna obróbka danych
+# Wstępna obróbka danych {#sec-prepro-chapter}
 
 ::: {.content-hidden unless-profile="local"}
 ```{python}
@@ -36,7 +36,7 @@ spark = (
 truncate_size = 60
 ```
 
-## Konfiguracja aplikacji
+## Konfiguracja aplikacji Spark
 
 W celu przygotowania danych do analizy zostały one wstępnie przetworzone. Pierwszym etapem wstępnego przetwarzania jest wczytanie danych do środowiska analitycznego. Dane surowe, przechowywane w koszyku `raw-data-beer-and-wine` znajowały się w mało przyjaznym dla analiz formacie `xml`. Wczytanie tego typu danych wymagało załadowania dodatkowego pakietu `jar` o nazwie `spark-xml_2.12:0.15.0` pobranego z repozytorium `maven`. 
 
@@ -62,7 +62,7 @@ from pyspark.sql import SparkSession
 spark = SparkSession.builder.appName("Preprocessing").getOrCreate()
 ```
 
-## Schematy danych
+## Schematy danych {#sec-schemas}
 
 ```{python}
 from pyspark.sql.types import *
@@ -250,7 +250,7 @@ badges = spark.read.format('xml').options(rowTag='row').schema(badges_schema).lo
 badges.show(n=5,truncate=False)
 ```
 \normalsize
-## Czyszczenie kolumn tekstowych
+## Czyszczenie kolumn tekstowych {#sec-text-cleanup}
 
 Pliki `Users`, `History` oraz `Posts` zawierają koumny tekstowe z danymi wpisywanymi przez użytkowników oraz często zawierające znaki specjalne czy tagi html. W związku z tym kolumny `_AboutMe` (plik `Users`), `_Text` (plik `History`) oraz `_Body` (plik `Posts`) zostały poddane procesowi oczyszczania. 
 

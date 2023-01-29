@@ -84,14 +84,14 @@ g2 = g1 + scale_y_log10() + ylab("Ilość postów (log)")
 #| include: true
 #| echo: false
 #| label: fig-ryc2
-#| fig-cap: "Liczba postow w czasie z podzialem na pytania i odpowiedzi. Lewy panel wskazuje surowe wartości liczby postów, prawy wartości logarytmiczne o podstawie 10."
+#| fig-cap: "Liczba postow w czasie z podzialem na pytania i odpowiedzi. Lewy panel wskazuje surowe wartości liczby postów, prawy wartości logarytmiczne o podstawie 10. Zamieszczono również linię trendu obliczoną przy użyciu algorytmu LOESS (ang. _Local Polynomial Regression Fitting_)"
 
 p1 = pw.load_ggplot(g1)
 p2 = pw.load_ggplot(g2)
 (p1|p2).savefig()
 ```
 
-Stosunek ilości odpowiedzi do zadawanych pytań rośnie w czasie, lecz ma na to wpływ zmniejszająca się ilość zadawanych pytań (maleje próba badana) co zostało przedstawione na @fig-ryc3. Patrząc na wartości średnie tylko co drugie pytanie uzyskiwało odpowiedź (ratio 0.48 +/- 0.22). Ogólne statystyki stosunku pytań do dopowiedzi w czasie zostały przedstawione w @tbl-ratios.
+Stosunek ilości odpowiedzi do zadawanych pytań (rato) rósł do roku 2021, w którym to zaczęto odnotowywać spadek. Na wzrost ratio miała wpływ zmniejszająca się ilość zadawanych pytań (maleje próba badana) co zostało przedstawione na @fig-ryc3. Patrząc na wartości średnie tylko co drugie pytanie uzyskiwało odpowiedź (ratio 0.48 +/- 0.22). Ogólne statystyki stosunku pytań do dopowiedzi w czasie zostały przedstawione w @tbl-ratios.
 
 ```{python}
 qa_ratio = (posts_grouped
@@ -111,12 +111,12 @@ qa_ratio_pd = qa_ratio.toPandas()
 g3 = ggplot(qa_ratio_pd, aes(x='date', y='ratio'))\
     + geom_point(aes(size="pytania")) \
     + scale_x_datetime() \
-    + geom_smooth() \
+    + geom_smooth(group="ratio", color="blue") \
     + theme(axis_text_x=element_text(rotation=90)) \
     + xlab("Data") \
     + ylab("Stosunek Pytanie/Odpowiedź")
 
-p3 = pw.load_ggplot(g3)
+p3 = pw.load_ggplot(g3, (10,5))
 p3.savefig()
 ```
 
@@ -133,7 +133,7 @@ qa_ratio.agg(
     f.percentile_approx("ratio", 0.5).alias("mediana")
 ).toPandas().head()
 ```
-
+\newpage
 ## Dynamika oraz statystyki udzielanych odpowiedzi
 
 Twórcy pytań na forum mają możliwość wybrania odpowiedzi, która jest najtrafniejsza i zawiera poprawną odpowiedź. Te odpowiedzi nazywane są zaakceptowanymi odpowiedziami. Zbadano jak często najwyżej oceniona odpowiedź nie była zaakceptowaną odpowiedzią.
@@ -183,7 +183,7 @@ questions.join(answers, on=questions.q_id == answers.parent_id)\
 
 ```
 
-Okazało się, że w przypadku pytań, które posiadały jakąkolwiek odpowiedź około 12.7% (646) przypadków najlepiej ocenianych odpowiedzi nie było tą, która została zaakceptowana przez autora.
+Okazało się, że w przypadku pytań, które posiadały jakąkolwiek odpowiedź, około 12.7% (646) przypadków najlepiej ocenianych odpowiedzi nie było tą, która została zaakceptowana przez autora.
 
 Następnie porównano oceny odpowiedzi zaakceptowanych z pozostałymi odpowiedziami a statystyki przedstawiono w @tbl-a_stats oraz @fig-ryc9.
 
@@ -195,6 +195,10 @@ Pośród odpowiedzi na zadawane pytania wyróżniono 3 kategorie:
 
 Z analizy wynika, iż zaakceptowane odpowiedzi mają średnio wyższe oceny użytkowników (6,39) niż pozostałe oceny (2.75 - `is_accepted=None`;  2.58 - `is_accepted=False`), co było oczekiwanym wynikiem.
 
+Następnie zbadano jak szybko od pojawienia się pytania, pojawia się zaakceptowana odpowiedź. Dla wszystkich pytań na tym forum jest to średnio 25244 minuty, ale wartość środkowa (753) sugeruje, że średnia może być zaburzona. W celu obliczenia średniej nie zaburzonej tak dużymi wartościami odstającymi odrzucono wartości znajdujące powyżej 6 odchyleń standardowych od średniej (75894 minut). Tym razem uzyskano wartość 3988 minut (~66,5 godziny), przy wartości środkowej 628 (~10,5 godziny).
+
+Rozkłady wartości przedstawiono na @fig-ryc10 oraz w @tbl-time_stats dla całego zbioru danych oraz @tbl-time_stats_no_outliers po odrzuceniu wartości odstających.
+
 ```{python}
 window_partition_agg = Window.partitionBy("q_id")
 
@@ -202,11 +206,12 @@ a_stats_pd = questions.join(answers, on=questions.q_id == answers.parent_id)\
     .sort(['q_id', 'a_id'])\
     .withColumn("is_accepted", f.col("accepted_answer_id") == f.col("a_id"))\
     .groupBy(f.col("is_accepted")).agg(
-        f.avg(f.col("score")).alias("avg_score"),
-        f.stddev(f.col("score")).alias("std_score"),
-        f.min(f.col("score")).alias("min_score"),
-        f.max(f.col("score")).alias("max_score"),
-        f.count("a_id")
+        f.avg(f.col("score")).alias("średnia"),
+        f.stddev(f.col("score")).alias("odchylenie standardowe"),
+        f.min(f.col("score")).alias("min"),
+        f.max(f.col("score")).alias("max"),
+        f.percentile_approx("score", 0.5).alias("mediana")
+        #f.count("a_id")
     ).toPandas()
 ```
 
@@ -222,7 +227,7 @@ a_stats_pd.head()
 accepted_df = questions.join(answers, on=questions.q_id == answers.parent_id)\
     .sort(['q_id', 'a_id'])\
     .withColumn("is_accepted", (f.col("accepted_answer_id") == f.col("a_id")).cast("string"))\
-    .withColumn("is_accepted", f.when(f.col("is_accepted").isNull(), "no accepted answer").otherwise(f.col("is_accepted"))).toPandas()
+    .withColumn("is_accepted", f.when(f.col("is_accepted").isNull(), "None").otherwise(f.col("is_accepted"))).toPandas()
 
 dist_plot = (
     ggplot(accepted_df, aes(x="is_accepted", y="score"))
@@ -255,21 +260,25 @@ time_to_accept.agg(
         f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
     ).show(truncate=False)
 
+std_dev = 12694
 
 time_to_accept_pd = (
     time_to_accept
         .withColumn('all', f.lit("all_questions"))
         .withColumn(
-            "is_outlier", 
-            f.when(f.col("time_to_accept_min") > 100000, True).otherwise(False)
+            "Wartość odstająca", 
+            f.when(f.col("time_to_accept_min") > std_dev*6, "Tak").otherwise("Nie")
             )).toPandas()
 
 scat_plot_time = (
     ggplot(time_to_accept_pd, aes(x='all', y="time_to_accept_min"))
         + geom_boxplot()
-        + geom_jitter(aes(color="is_outlier"))
+        + geom_jitter(aes(color="Wartość odstająca"))
         + scale_y_log10() 
-        + coord_flip()
+        + coord_flip() 
+        + ylab("Czas do zaakceptowania odpowiedzi (min) - skala logarytmiczna")
+        + xlab("Zaakceptowane odpowiedzi")
+        + theme(axis_text_y=element_blank())
         )
 pscat_plot_time = pw.load_ggplot(scat_plot_time, (10,3))
 ```
@@ -278,7 +287,7 @@ pscat_plot_time = pw.load_ggplot(scat_plot_time, (10,3))
 #| include: true
 #| echo: false
 #| label: fig-ryc10
-#| fig-cap: Rozkład czasu od pojawienia się pytania do zaakceptowanej odpowiedzi
+#| fig-cap: Rozkład czasu od pojawienia się pytania do zaakceptowanej odpowiedzi w minutach
 pscat_plot_time.savefig()
 ```
 
@@ -286,31 +295,34 @@ pscat_plot_time.savefig()
 #| include: true
 #| echo: false
 #| label: tbl-time_stats
-#| tbl-cap: Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych
+#| tbl-cap: Statystyki czasu od pojawienia się pytania do zaakceptowanej odpowiedzi w minutach
 time_to_accept.agg(
-        f.avg('time_to_accept_min'),
-        f.stddev('time_to_accept_min'),
-        f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
+        f.avg('time_to_accept_min').alias('średnia'),
+        f.stddev('time_to_accept_min').alias('odchylenie standardowe'),
+        f.min(f.col("time_to_accept_min")).alias("min"),
+        f.max(f.col("time_to_accept_min")).alias("max"),
+        f.percentile_approx("time_to_accept_min", 0.5).alias("mediana")
+        #f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
     ).toPandas().head()
 ```
 ```{python}
 #| include: true
 #| echo: false
 #| label: tbl-time_stats_no_outliers
-#| tbl-cap: Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych po odrzuceniu wartości odstających > 100000
-no_outliers = time_to_accept.filter(f.col('time_to_accept_min') < 100000)
+#| tbl-cap: Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych po odrzuceniu wartości odstających (> 6*SD)
+no_outliers = time_to_accept.filter(f.col('time_to_accept_min') < std_dev*6)
 
 no_outliers.agg(
-        f.avg('time_to_accept_min'),
-        f.stddev('time_to_accept_min'),
-        f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
+        f.avg('time_to_accept_min').alias('średnia'),
+        f.stddev('time_to_accept_min').alias('odchylenie standardowe'),
+        f.min(f.col("time_to_accept_min")).alias("min"),
+        f.max(f.col("time_to_accept_min")).alias("max"),
+        f.percentile_approx("time_to_accept_min", 0.5).alias("mediana")
+        #f.percentile_approx("time_to_accept_min", [0.25, 0.5, 0.75], 1000000).alias("quantiles")
     ).toPandas().head()
 ```
 
-Następnie zbadano jak szybko od pojawienia się pytania, pojawia się zaakceptowana odpowiedź. Dla wszystkich pytań na tym forum jest to średnio 25244 minuty, ale wartość środkowa (753) sugeruje, że średnia może być zaburzona. W celu obliczenia średniej nie zaburzonej tak dużymi wartościami odstającymi odrzucono wartości powyżej 100000 minut. Tym razem uzyskano wartość 4769 minut (~3 dni), przy wartości środkowej 644 (~10 godzin).
-
-Rozkłady wartości przedstawiono na @fig-ryc10 oraz w @tbl-time_stats dla całego zbioru danych oraz @tbl-time_stats_no_outliers po odrzuceniu wartości odstających.
-
+\newpage
 ## Retencja użytkowników
 
 W całej historii forum zarejestrowanych zostało 8948 użytkowników, z czego jedno konto jest kontem bota. Miarą retencji użytkownika na forum określono czas od utworzenia konta to ostaniej zamieszczonej wiadomości. Wśród 50 najdłużej aktywnych kont zidentyfikowano konto z wynikiem aż 3052 dni a konto z ostatnim indeksem w tej grupie miało wynik 2128 dni. Jednakże patrząc na całą populację, wartość środkowa wyniosła 11, a 50% wartości mieści się pomiędzy 0 a 594 dniami. Użytkownicy z wartością 0, są to najprawdopodobniej użytkowicy, którzy zadali jedyne pytanie na forum w dniu założenia konta (410 użytkowników). Czas na forum najdłużej aktywnych użytkowników został zwizualizowany na @fig-ryc4. Dodatkowo okazało się, że 7691 (86%) kont było biernymi użytkownikami forum i nidgy nie dodało żadnego posta.
@@ -417,7 +429,7 @@ never_posted.agg(
     f.count_distinct("id")
 ).show()
 ```
-
+\newpage
 ## Statystyki najwyżej oraz najniżej ocenianych pytań {#sec-qstats}
 
 Zbadano statystyki zadawanych pytań. Użytkownicy forum mogą oceniać pojawiające się tam pytania czego miarą jest wartość `score`. Sprawdzono, czy długość zadanego pytania ma wpływ na jego ocenę. 
@@ -463,7 +475,7 @@ questions_pd = questions.withColumn('post_len', f.length(f.col('body_clean'))).w
 #| include: true
 #| echo: false
 #| label: tbl-q_stats
-#| tbl-cap: Statystyki długości postów
+#| tbl-cap: Statystyki długości postów (liczba znaków)
 
 (questions
     .withColumn('post_len', f.length(f.col('body_clean')))
@@ -523,12 +535,19 @@ g6 = (
         )
     + geom_smooth(aes(group="type"))
     + geom_point()
-    + ggtitle("Oceny 100 najlepiej oraz najgorzej ocenianych pytań")
+    + ggtitle("Oceny 100 najlepiej oraz najgorzej ocenianych pytań") 
+    + theme(
+        axis_text_x=element_text(rotation=90, size=15),
+        axis_text_y=element_text(size=15),
+        title=element_text(size=30),
+        strip_text=element_text(size=20)
+        )
+    + xlab("Ilość znaków (skala logarytmiczna)")
 )
-g6_log = g6 + scale_x_log10() + scale_y_log10()
+g6_log = g6 + scale_x_log10() + scale_y_log10() + ylab("score (skala logarytmiczna)")
 
-p6 = pw.load_ggplot(g6, (10,3))
-p6_log = pw.load_ggplot(g6_log, (10,3))
+p6 = pw.load_ggplot(g6, (10,6))
+p6_log = pw.load_ggplot(g6_log, (10,6))
 ```
 
 
@@ -541,18 +560,26 @@ g5 = (
     + geom_smooth(fill="blue")
     + geom_point(alpha=0.3)
     + ggtitle("Oceny wszystkich pytań")
+    + xlab("Ilość znaków (skala logarytmiczna)")
+    + theme(
+        axis_text_x=element_text(rotation=90, size=15),
+        axis_text_y=element_text(size=15),
+        title=element_text(size=30),
+        strip_text=element_text(size=20)
+        )
 )
-g5_log = g5 + scale_x_log10() + scale_y_log10()
 
-p5 = pw.load_ggplot(g5, (10,3))
-p5_log = pw.load_ggplot(g5_log, (10,3))
+g5_log = g5 + scale_x_log10() + scale_y_log10() + ylab("score (skala logarytmiczna)")
+
+p5 = pw.load_ggplot(g5, (10,6))
+p5_log = pw.load_ggplot(g5_log, (10,6))
 ```
 
 ```{python}
 #| include: true
 #| echo: false
 #| label: fig-ryc5
-#| fig-cap: Oceny pytań na forum w zależności od długości zadanego pytania
+#| fig-cap: Oceny pytań (score) na forum w zależności od ilości znaków zawartych w pytaniu
 
 ((p5 | p5_log) / (p6 | p6_log)).savefig()
 ```
@@ -562,7 +589,7 @@ p5_log = pw.load_ggplot(g5_log, (10,3))
 #| include: true
 #| echo: false
 #| label: tbl-q_stats_types
-#| tbl-cap: Statystyki długości postów z podziałem na podgrupy najlepszych i najgorszych pytań
+#| tbl-cap: Statystyki długości postów z podziałem na podgrupy najlepszych (type=top) i najgorszych pytań (type=bottom)
 
 edge_questions.groupby('type')\
     .agg(
@@ -578,7 +605,7 @@ edge_questions.groupby('type')\
 #| include: true
 #| echo: false
 #| label: tbl-score_stats_types
-#| tbl-cap: Statystyki ocen użytkowników z podziałem na podgrupy najlepszych i najgorszych pytań
+#| tbl-cap: Statystyki ocen użytkowników z podziałem na podgrupy najlepszych (type=top) i najgorszych pytań (type=bottom)
 
 edge_questions.groupby('type')\
     .agg(
@@ -590,7 +617,7 @@ edge_questions.groupby('type')\
     ).toPandas().head()
 ```
 
-Zauważono również że najlepiej oceniane pytania są również częściej oglądane i mają więcej odpowiedzi niż pytania najgorzej oceniane (@fig-ryc6). Najlepiej oceniane pytania mają średnio 17 odpowiedzi podczas gdy najgorzej jedynie 4 (@tbl-answers_stats_types) oraz odpowiednio średnio 26289 i 475 wyświetleń (@tbl-views_stats_types)
+Zauważono również że najlepiej oceniane pytania są również częściej oglądane i mają więcej odpowiedzi niż pytania najgorzej oceniane (@fig-ryc6). Najlepiej oceniane pytania mają średnio 4 odpowiedzi podczas gdy najgorzej jedynie 1 (@tbl-answers_stats_types) oraz odpowiednio średnio 26289 i 475 wyświetleń (@tbl-views_stats_types)
 
 ```{python}
 g7 = (ggplot(
@@ -603,6 +630,8 @@ g7 = (ggplot(
     + geom_point() 
     + scale_x_log10()
     + geom_smooth(show_legend=False)
+    + xlab("Liczba wyświetleń - skala lokarytmiczna")
+    + ylab("Wartość score")
     )
 g8 = (ggplot(
     edge_questions_pd, 
@@ -615,7 +644,8 @@ g8 = (ggplot(
     + geom_point() 
     + scale_x_log10()
     + geom_smooth(show_legend=False)
-    + ggtitle(f'Top and bottom {n_questions} questions in relation to its views and answers')
+    + xlab("Liczba wyświetleń - skala lokarytmiczna")
+    + ylab("Liczba odpowiedzi")
     )
 p7 = pw.load_ggplot(g7, (10,3))
 p8 = pw.load_ggplot(g8, (10,3))
@@ -625,7 +655,7 @@ p8 = pw.load_ggplot(g8, (10,3))
 #| include: true
 #| echo: false
 #| label: fig-ryc6
-#| fig-cap: Oceny pytań na forum w zależności od ilości wyświetleń i odpowiedzi
+#| fig-cap: Liczba odpowiedzi oraz oceny najlepiej (type=top) oraz najgorzej (type=bottom) ocenianych pytań w zależności od liczby ich wyświetleń
 
 (p8/p7).savefig()
 ```
@@ -635,14 +665,14 @@ p8 = pw.load_ggplot(g8, (10,3))
 #| include: true
 #| echo: false
 #| label: tbl-answers_stats_types
-#| tbl-cap: Statystyki ilości odpowiedzi na pytania z podziałem na podgrupy najlepszych i najgorszych pytań
+#| tbl-cap: Statystyki ilości odpowiedzi na pytania z podziałem na podgrupy najlepszych (type=top) i najgorszych (type=bottom) pytań
 edge_questions.groupby('type')\
     .agg(
-        f.max(f.col('answer_count')),
-        f.min(f.col('answer_count')),
-        f.mean(f.col('answer_count')).alias('mean'),
-        f.stddev(f.col('answer_count')).alias('std_dev'),
-        f.percentile_approx(f.col('answer_count'), 0.5).alias('median')
+        f.mean(f.col('answer_count')).alias('średnia'),
+        f.stddev(f.col('answer_count')).alias('odchylenie standardowe'),
+        f.max(f.col('answer_count')).alias("max"),
+        f.min(f.col('answer_count')).alias("min"),
+        f.percentile_approx(f.col('answer_count'), 0.5).alias('mediana')
     ).toPandas().head()
 ```
 
@@ -650,16 +680,17 @@ edge_questions.groupby('type')\
 #| include: true
 #| echo: false
 #| label: tbl-views_stats_types
-#| tbl-cap: Statystyki ilości wyświetleń pytań z podziałem na podgrupy najlepszych i najgorszych pytań
+#| tbl-cap: Statystyki ilości wyświetleń pytań z podziałem na podgrupy najlepszych (type=top) i najgorszych (type=bottom) pytań
 edge_questions.groupby('type')\
-    .agg(
-        f.max(f.col('view_count')),
-        f.min(f.col('view_count')),
-        f.mean(f.col('view_count')).alias('mean'),
-        f.stddev(f.col('view_count')).alias('std_dev'),
-        f.percentile_approx(f.col('view_count'), 0.5).alias('median')
+    .agg(        
+        f.mean(f.col('view_count')).alias('średnia'),
+        f.stddev(f.col('view_count')).alias('odchylenie standardowe'),
+        f.max(f.col('view_count')).alias("max"),
+        f.min(f.col('view_count')).alias("min"),
+        f.percentile_approx(f.col('view_count'), 0.5).alias('mediana')
     ).toPandas().head()
 ```
+\newpage
 
 ## Analiza znaczników (tagów)
 ```{python}
@@ -906,7 +937,8 @@ g9 = (ggplot(top_posts_tags_time_agg_pd, aes("date", "count", color="tag"))\
     + scale_x_datetime()\
     + geom_line(group="tag", show_legend=False) \
     + theme(
-        axis_text_x=element_text(rotation=90),
+        axis_text_x=element_text(rotation=90, size=15),
+        axis_text_y=element_text(size=15),
         title=element_text(size=30),
         strip_text=element_text(size=20)
         )
@@ -921,7 +953,8 @@ g10 = (ggplot(top_posts_tags_time_agg_cum_sum_pd, aes("date", "cumsum_value", co
     + scale_x_datetime()\
     + geom_step(group="tag", show_legend=False) \
     + theme(
-        axis_text_x=element_text(rotation=90),
+        axis_text_x=element_text(rotation=90, size=15),
+        axis_text_y=element_text(size=15),
         title=element_text(size=30),
         strip_text=element_text(size=20)
         )
@@ -940,6 +973,7 @@ p10 = pw.load_ggplot(g10, (30, 8))
 
 (p9 / p10).savefig() 
 ```
+\newpage
 
 ## Analiza tytułów postów
 

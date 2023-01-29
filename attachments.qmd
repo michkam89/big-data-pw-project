@@ -1,8 +1,8 @@
 # Załączniki {#sec-appendix}
 
-## Polecenia budujące infrastrukturę
+## Budowanie infrastruktury chmurowej
 
-### EMR {#sec-emr}
+### Polecenie AWS CLI dla usługi EMR {#sec-emr}
 
 \small
 
@@ -12,22 +12,45 @@ aws emr create-cluster --name="MyEMRCluster" \
     --applications Name=JupyterHub Name=Hadoop Name=Spark \
     --log-uri s3://emr-logs-beer-and-wine/MyJupyterClusterLogs \
     --use-default-roles \
-    --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m4.large InstanceGroupType=CORE,InstanceCount=2,InstanceType=m4.large \
+    --instance-groups InstanceGroupType=MASTER,InstanceCount=1,InstanceType=m4.xlarge, \
+        BidPrice=OnDemandPrice  
+        InstanceGroupType=CORE,InstanceCount=2,InstanceType=m4.xlarge,BidPrice=OnDemandPrice \
     --ebs-root-volume-size 32 \
     --configurations file://emr-configurations.json \
-    --bootstrap-actions Path=s3://misc-beer-and-wine/install_python_libraries.sh,Name=InstallJupyterLibs
+    --bootstrap-actions 
+        Path=s3://misc-beer-and-wine/install_python_libraries.sh,Name=InstallJupyterLibs
 ```
 
 \normalsize
 
-Plik `install-my-jupyter-libraries.sh` dostępny jest pod poniższym [adresem]() 
+### Plik `install-my-jupyter-libraries.sh` 
+Odpowiada za zainstalowanie dodatkowych bibliotek pythonowych na węzłach typy _master_ oraz _worker_. Wykorzystany w parametrze `--bootstrap-actions` @sec-emr
+ \small
+```bash
+#!/bin/bash
 
-```{python}
-#| eval: false
-
+sudo python3 -m pip install matplotlib plotnine wordcloud bs4 html nltk pandas \ 
+    && patchworklib boto3 pyspark jupyter-client scikit-misc
 ```
 
-### S3
+\normalsize
+
+### Plik `emr-configurations.json` {#sec-emr-config}
+Odpowiada za automatycznie zapisywanie notebooków w serwisie S3. Wykorzystany w parametrze `--configurations` @sec-emr.
+\small
+```json
+[
+    {
+        "Classification": "jupyter-s3-conf",
+        "Properties": {
+            "s3.persistence.enabled": "true",
+            "s3.persistence.bucket": "emr-jupyter-notebooks-zjasdu123"
+        }
+    }
+]
+```
+\normalsize
+### Polecenie AWS CLI dla usługi S3
 
 Koszyki S3 zostały utworzone przy pomocy poniższego polecenia:
 ```
@@ -37,7 +60,7 @@ aws s3api create-bucket --acl private --bucket <nazwa koszka>
 ## Definicje funkcji
 
 ### tags_remove(){#sec-tags-remove}
-
+\small
 ```{python}
 #| eval: false
 from pyspark.sql.functions import udf
@@ -52,10 +75,11 @@ def tags_remove(s):
         return None
 udf_tags_remove = udf(lambda m: tags_remove(m))
 ```
-
+\normalsize
 
 ### regexp_extract_all()
-
+Źródło: https://gist.github.com/dannymeijer/be3534470b205280e52dbbcbb19a9670
+\small
 ```{python}
 #| eval: false
 from pyspark.sql import DataFrame
@@ -158,7 +182,7 @@ def regexp_extract_all(
 
     return df
 ```
-
+\normalsize
 ## Repozytorium kodu wykorzystany w pracy
 
 https://github.com/michkam89/big-data-pw-project

@@ -5,7 +5,7 @@ lang: pl
 language: _language.yml
 
 book: 
-  title: "Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej"
+  title: "Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark"
   chapters:
     - part: index.qmd
     - part: results.qmd
@@ -48,7 +48,6 @@ format:
     theme: cosmo
     code-fold: true
   pdf:
-    keep-tex: true
     cite-method: biblatex
     documentclass: scrreprt
     margin-bottom: 2cm

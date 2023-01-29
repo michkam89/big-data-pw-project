@@ -2,12 +2,13 @@
 warnings: false
 ---
 
-# Schemat infrastruktury
+### Schemat infrastruktury rozwiązania
+
+W celu rozwiązania postawionego problemu analitycznego stworzono infrastrukturę wyłącznie w obrębie chmury AWS, której ogólny schemat przedstawiono na @fig-schema
 
 ```{python}
-#| echo: false
-#| label: fig-ryc1
-#| fig-cap: "Schemat rozwiązania"
+#| include: false
+
 
 from diagrams import Node, Edge, Cluster, Diagram
 from diagrams.aws.compute import EC2
@@ -15,7 +16,7 @@ from diagrams.aws.analytics import EMRCluster
 from diagrams.aws.storage import S3
 from diagrams.aws.devtools import Cloud9
 
-with Diagram("") as diag:
+with Diagram("", show=False) as diag:
     
     with Cluster("AWS VPC", direction="LR"):
         c9 = Cloud9("Cloud9") 
@@ -43,18 +44,15 @@ with Diagram("") as diag:
 diag
 ```
 
-W celu rozwiązania postawionego problemu analitycznego stworzono infrastrukturę wyłącznie w obrębie chmury AWS, której ogólny schemat przedstawiono na @fig-ryc1
+![Schemat infrastruktury rozwiązania w chmurze AWS](diagrams_image.png){#fig-schema}
 
-## Ekstrakcja
+## Ekstrakcja danych surowych {#sec-extraction}
 
 Do etapu ekstrakcji danych wykorzystano usługę `Cloud9`, która zapewnia dostęp do terminala maszyny wirtualnej z systemem linux (platforma `Amazon Linux 2`, typ instancji `t2.micro`). Z użyciem tej usługi dane zostały pobrane ze źródła w binarnym formacie `7z` a następnie pliki zostały wyekstrahowane w formacie `xml` przy pomocy programu `p7zip`. Dane w formacie `xml` zostały następnie skopiowane do serwisu `S3`, gdzie utworzono koszyk danych (ang. _bucket_) o nazwie `raw-data-beer-and-wine`, którego przeznaczeniem jest przetwymywanie danych nieprzetworzonych. 
 
 Powyższe operacje zostały wykonane przy użyciu poniższych poleceń:
 
-```{bash}
-#| eval: false
-#| echo: true
-
+```bash
 # instalacja programu p7zip
 sudo yum install p7zip.x86_64
 
@@ -68,16 +66,25 @@ wget https://archive.org/download/stackexchange/beer.stackexchange.com.7z
 aws s3 cp $(pwd)/raw-data s3://raw-data-beer-and-wine/ --recursive  --include "*.xml"
 ```
 
-## Przygotowanie danych wstępnych
+## Przygotowanie danych wstępnych {#sec-prepro}
 
-W celu przygotowania danych do analizy, dane surowe zostały wstępnie przetworzone oraz zapisane w formacie `parquet`, co pozwoli na wydajniejsze wczytywanie danych podczas uruchomień programu. Podczas etapu wstępnego przetwarzania danych, oprócz zmiany formatu plików, zdefiniowane zostały także schematy danych, które zapewnią, że kolumny danych będą posiadały odpowiednie typy oraz, że krytyczne dane nie będą zawierały pustych wartości. Dodatkowo kolumny z wartościami tekstowymi, niesłownikowanymi zostały oczyszczone z tagów `html` oraz poddane standardowej procedurze oczyszania tekstu.
+W celu przygotowania danych do analizy, dane surowe zostały wstępnie przetworzone oraz zapisane w formacie `parquet` w koszyku danych `preprocessed-data-beer-and-wine`, co pozwoliło na wydajniejsze wczytywanie danych podczas uruchomień programu. Podczas etapu wstępnego przetwarzania danych, oprócz zmiany formatu plików, zdefiniowane zostały także schematy danych, które zapewnią, że kolumny wczytanych danych będą posiadały odpowiednie typy oraz, że krytyczne dane nie będą zawierały pustych wartości (@sec-schemas). Dodatkowo kolumny z wartościami tekstowymi, niesłownikowanymi zostały oczyszczone z tagów `html` oraz poddane standardowej procedurze oczyszania tekstu (@sec-text-cleanup).
 
-Powyższe czynności zostały wykonane w notatniku typu Jupiter (ang. _`Jupyter Notebook`_) w serwisie `AWS EMR`. Stworzono klaster `EMR` (wersja 6.8.0) z instalacją `Hadoop` 3.2.1, `Jupyter Hub` oraz `Spark` 3.3.0, składający się z 1 instancji typu _master_ oraz 2 instancji typu _core_, każda typu `m4.large`. W celu ograniczenia kosztów jako opcję zakupu wybrano typ `spot` z limitem maksymalnym ceny odpowiadającej typowi `on-demand`. Wielkość dysków `EBS` stworzonych instancji wynosiła 32 GiB dla każdej istancji w klastrze.
+Powyższe czynności zostały wykonane w notatniku typu Jupiter (ang. _`Jupyter Notebook`_) w serwisie `AWS EMR`. Stworzono klaster `EMR` (wersja 6.8.0) z instalacją `Hadoop` 3.2.1, `Jupyter Hub` 1.4.1 oraz `Spark` 3.3.0. Klaster składał się z 1 instancji typu _master_ oraz 2 instancji typu _core_, każda typu `m4.xlarge`. W celu ograniczenia kosztów jako opcję zakupu wybrano typ `spot` z limitem maksymalnym ceny odpowiadającej typowi `on-demand`. Wielkość dysków `EBS` stworzonych instancji wynosiła 32 GiB dla każdej istancji w klastrze. 
 
-Polecenie programu AWS CLI odpowiadające za utworzenie klastra zajduje się w sekcji @sec-emr.
+Dostęp do `Jupyter Hub` w utworzonym klastrze jest możliwy poprzez połącznie przez przeglądarkę z środowiskiem graficznym `Jupyter Hub` wykorzystując publiczny adres DNS instancji _master_ i port 9443. Dodatkowo w celu ułatwienia dostępu do `Jupyter Notebook`'ów, utworzony klaster został skonfigurowany na automatycznie ich zapisywanie w dedykowanym koszyku danych w serwisie `S3` (patrz @sec-emr-config)
 
-Dostęp do `Jupyter Notebook` w utworzonym klastrze jest możliwy poprzez połącznie przez przeglądarkę z środowiskiem graficznym `Jupyter Hub` wykorzystując adres DNS instancji _master_ i port 9443.
+Polecenia programu AWS CLI odpowiadające za utworzenie klastra, wraz z niezbędnymi dodatkowymi plikami zajdują się w @sec-appendix. Wszystkie serwisy AWS na potrzeby tego projektu zostały utworzone w sposób programatyczny przy użyciu programu `AWS CLI` (poza `Cloud9`, który został utworzony z poziomu konsoli zarządzającej).
 
-## Budowa infrastruktury
 
-Wszystkie serwisy AWS na potrzeby tego projektu zostały utworzone w sposób programatyczny przy użyciu programu `AWS CLI` (poza `Cloud9`, który został utworzony z poziomu konsoli zarządzającej). Wykorzystane polecenia dostępne są w sekcji @sec-appendix. 
+## Potencjalne usprawnienia
+
+W przypadku chęciu usprawnienia i optymailzacji rozwiązania możliwa jest dodatkowa konfiguracja obecnej infrastruktury. Jedym z możliwych usprawnień jest reduckja zajmowanego miesjca w serwisie `S3`. Koszyk danych `raw-data-beer-and-wine` może posiadać automatyczne usuwanie danych lub archiwizację danych w serwisie `S3 Glacier`, jako że dane w formacie `xml` po ekstrakcji i zapisaniu ich w formacie `parquet` są danymi nadmiarowymi. 
+
+Potencjalny schemat tego rozwiązania mógłby składać się z następujących kroków:
+
+1. Wykonywanie kodu z sekcji @sec-extraction, mogłoby zostać zautomatyzowane poprzez cykliczne uruchamianie skryptu o danej godzinie np. przy pomocy serwisu AWS Lambda bądź AWS Batch
+2. Po wykonaniu ekstrakcji uruchamiany byłby kod do wstępnego przetwarzania danych zapisujący dane w formacie `parquet` opisany w @sec-prepro oraz w szczegółach w @sec-prepro-chapter
+3. Dane z koszyka `raw-data-beer-and-wine` byłyby usuwane godzinę po zakończeniu kroku numer 2.
+
+W przypadku prezentowanego w tej pracy przykładu optymalizacja przechowywania danych nie jest etapem kluczowym, ze względu na stosunkowo mały rozmiar danych, lecz będzie to miało istotne znaczenie w kosztach analizy, gdy rozmiar danych będzie zwiększony.
