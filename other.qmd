@@ -1,0 +1,3 @@
+# Repozytorium kodu wykorzystanego w pracy
+
+https://github.com/michkam89/big-data-pw-project

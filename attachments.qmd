@@ -1,8 +1,6 @@
-# Załączniki {#sec-appendix}
+# Budowanie infrastruktury chmurowej {#sec-iac}
 
-## Budowanie infrastruktury chmurowej
-
-### Polecenie AWS CLI dla usługi EMR {#sec-emr}
+## Polecenie AWS CLI dla usługi EMR {#sec-emr}
 
 \small
 
@@ -23,7 +21,7 @@ aws emr create-cluster --name="MyEMRCluster" \
 
 \normalsize
 
-### Plik `install-my-jupyter-libraries.sh` 
+## Plik `install-my-jupyter-libraries.sh` 
 Odpowiada za zainstalowanie dodatkowych bibliotek pythonowych na węzłach typy _master_ oraz _worker_. Wykorzystany w parametrze `--bootstrap-actions` @sec-emr
  \small
 ```bash
@@ -35,7 +33,7 @@ sudo python3 -m pip install matplotlib plotnine wordcloud bs4 html nltk pandas \
 
 \normalsize
 
-### Plik `emr-configurations.json` {#sec-emr-config}
+## Plik `emr-configurations.json` {#sec-emr-config}
 Odpowiada za automatycznie zapisywanie notebooków w serwisie S3. Wykorzystany w parametrze `--configurations` @sec-emr.
 \small
 ```json
@@ -50,139 +48,9 @@ Odpowiada za automatycznie zapisywanie notebooków w serwisie S3. Wykorzystany w
 ]
 ```
 \normalsize
-### Polecenie AWS CLI dla usługi S3
+## Polecenie AWS CLI dla usługi S3
 
 Koszyki S3 zostały utworzone przy pomocy poniższego polecenia:
 ```
 aws s3api create-bucket --acl private --bucket <nazwa koszka>
 ```
-
-## Definicje funkcji
-
-### tags_remove(){#sec-tags-remove}
-\small
-```{python}
-#| eval: false
-from pyspark.sql.functions import udf
-from bs4 import BeautifulSoup
-from html import unescape
-
-def tags_remove(s):
-    if s is not None:
-        soup = BeautifulSoup(unescape(s), 'lxml')
-        return soup.text
-    else: 
-        return None
-udf_tags_remove = udf(lambda m: tags_remove(m))
-```
-\normalsize
-
-### regexp_extract_all()
-Źródło: https://gist.github.com/dannymeijer/be3534470b205280e52dbbcbb19a9670
-\small
-```{python}
-#| eval: false
-from pyspark.sql import DataFrame
-from pyspark.sql import functions as f
-
-
-def regexp_extract_all(
-    df: DataFrame,
-    regex: str,
-    no_of_extracts: int,
-    input_column_name: str,
-    output_column_name: str = "output",
-    empty_array_replace: bool = True,
-):
-    """Pyspark implementation for extracting all matches of a reg_exp_extract
-    
-    Background
-    ----------
-    The regular implementation of regexp_extract (as part of pyspark.sql.functions module)
-    is not capable of returning more than 1 match on a regexp string at a time. This 
-    function can be used to circumvent this limitation.
-    
-    How it works
-    ------------
-    You can specify a `no_of_extracts` which will essentially run the regexp_extract 
-    function that number of times on the `input_column` of the `df` (`DataFrame`). 
-    In between extracts, a set of interim columns are created where every 
-    intermediate match is stored. A distinct array is created from these matches, 
-    after which the interim columns are dropped. The resulting array is stored in 
-    the defined `output_column`. Empty strings/values in the resulting array can 
-    optionally be dropped or kept depending on how `empty_array_replace` is set 
-    (default is True).
-    
-    Usage example
-    -------------
-    In the below example, we are extracting all email-addresses from a body of text.
-    The returned DataFrame will have a new ArrayType column added named `email_addresses`
-    
-    > # Assuming `df` is a valid DataFrame containing a column named `text`
-    > email_regex = r"[\w.-]+@[\w.-]+\.[a-zA-Z]{1,}"
-    > df = regexp_extract_all(df, email_regex, 6, "text", "email_addresses", True)
-    
-    Parameters
-    ----------
-    df: DataFrame
-        Input DataFrame
-    
-    regex: str
-        Regexp string to extract from input DataFrame
-    
-    no_of_extracts: int
-        Max number of occurrences to extract
-    
-    input_column_name: str
-        Name of the input column
-    
-    output_column_name: str
-        Name of the output column (default: output)
-    
-    empty_array_replace: bool
-        If set to True, will replace empty arrays with null values (default: True)
-    """
-    repeats = range(0, no_of_extracts)
-
-    # A set of interim columns are created that will be dropped afterwards
-    match_columns = [f"___{r}___" for r in repeats]
-
-    # Apply regexp_extract an r number of times
-    for r in repeats:
-        df = df.withColumn(
-            match_columns[r],
-            f.regexp_extract(
-                f.col(input_column_name),
-                # the input regex string is amended with ".*?"
-                # and repeated an r number of times
-                # r needs to be +1 as matching groups are 1-indexed
-                "".join([f"{regex}.*?" for i in range(0, r + 1)]),
-                r + 1,
-            ),
-        )
-
-    # Create a distinct array with all empty strings removed
-    df = df.withColumn(
-        output_column_name,
-        f.array_remove(f.array_distinct(f.array(match_columns)), ""),
-    )
-
-    # Replace empty string with None if empty_array_replace was set
-    if empty_array_replace:
-        df = df.withColumn(
-            output_column_name,
-            f.when(f.size(output_column_name) == 0, f.lit(None)).otherwise(
-                f.col(output_column_name)
-            ),
-        )
-
-    # Drop interim columns
-    for c in match_columns:
-        df = df.drop(c)
-
-    return df
-```
-\normalsize
-## Repozytorium kodu wykorzystany w pracy
-
-https://github.com/michkam89/big-data-pw-project

@@ -25,7 +25,7 @@ posts = spark.read.format('parquet').load("outputs/posts")
 users = spark.read.format('parquet').load("outputs/users")
 ```
 
-## Analiza aktywności użytkowników na forum
+## Analiza aktywności użytkowników na forum {#sec-activity}
 
 Jako pierwsze postanowiono zbadać czy forum jest aktywne. W tym celu liczbę postów zagregowano w miesięczne insterwały i zliczono ich ilość. Pierwsza wiadomość pojawiła się na forum 2014-01-21 natomiast ostatnia 2022-06-05. Na przestrzeni tych ~8,5 roku pojawiło się 3769 postów. Z @fig-ryc2 widać, że zainteresowanie forum spadało w czasie. W rekordowych pierwszych 2 miesiącach umieszczano ich odpowiednio 413 oraz 190, natomiast pod koniec badanego okresu wartości często nie przekraczały 10.
 
@@ -134,7 +134,7 @@ qa_ratio.agg(
 ).toPandas().head()
 ```
 \newpage
-## Dynamika oraz statystyki udzielanych odpowiedzi
+## Dynamika oraz statystyki udzielanych odpowiedzi {#sec-dynamics}
 
 Twórcy pytań na forum mają możliwość wybrania odpowiedzi, która jest najtrafniejsza i zawiera poprawną odpowiedź. Te odpowiedzi nazywane są zaakceptowanymi odpowiedziami. Zbadano jak często najwyżej oceniona odpowiedź nie była zaakceptowaną odpowiedzią.
 
@@ -323,7 +323,7 @@ no_outliers.agg(
 ```
 
 \newpage
-## Retencja użytkowników
+## Retencja użytkowników {#sec-retention}
 
 W całej historii forum zarejestrowanych zostało 8948 użytkowników, z czego jedno konto jest kontem bota. Miarą retencji użytkownika na forum określono czas od utworzenia konta to ostaniej zamieszczonej wiadomości. Wśród 50 najdłużej aktywnych kont zidentyfikowano konto z wynikiem aż 3052 dni a konto z ostatnim indeksem w tej grupie miało wynik 2128 dni. Jednakże patrząc na całą populację, wartość środkowa wyniosła 11, a 50% wartości mieści się pomiędzy 0 a 594 dniami. Użytkownicy z wartością 0, są to najprawdopodobniej użytkowicy, którzy zadali jedyne pytanie na forum w dniu założenia konta (410 użytkowników). Czas na forum najdłużej aktywnych użytkowników został zwizualizowany na @fig-ryc4. Dodatkowo okazało się, że 7691 (86%) kont było biernymi użytkownikami forum i nidgy nie dodało żadnego posta.
 
@@ -692,7 +692,7 @@ edge_questions.groupby('type')\
 ```
 \newpage
 
-## Analiza znaczników (tagów)
+## Analiza znaczników (tagów) {#sec-tags}
 ```{python}
 # source https://gist.github.com/dannymeijer/be3534470b205280e52dbbcbb19a9670
 from pyspark.sql import DataFrame
@@ -975,7 +975,7 @@ p10 = pw.load_ggplot(g10, (30, 8))
 ```
 \newpage
 
-## Analiza tytułów postów
+## Analiza tytułów postów {#sec-titles}
 
 Dodatkową metodą, oprócz analizy znaczkików, którą można wykorzystać w celu zbadania tematów poruszanych na forum może być analiza najczęściej pojawiających się słów. Można do tego wykorzystać treść tytułów wiadomości jak i ich główną treść. W niniejszej pracy skupiono się na analizie treści tytułów wiadomości, jako że bardzo często zawierają one dużo słów kluczowych.
 

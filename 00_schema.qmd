@@ -74,17 +74,4 @@ Powyższe czynności zostały wykonane w notatniku typu Jupiter (ang. _`Jupyter 
 
 Dostęp do `Jupyter Hub` w utworzonym klastrze jest możliwy poprzez połącznie przez przeglądarkę z środowiskiem graficznym `Jupyter Hub` wykorzystując publiczny adres DNS instancji _master_ i port 9443. Dodatkowo w celu ułatwienia dostępu do `Jupyter Notebook`'ów, utworzony klaster został skonfigurowany na automatycznie ich zapisywanie w dedykowanym koszyku danych w serwisie `S3` (patrz @sec-emr-config)
 
-Polecenia programu AWS CLI odpowiadające za utworzenie klastra, wraz z niezbędnymi dodatkowymi plikami zajdują się w @sec-appendix. Wszystkie serwisy AWS na potrzeby tego projektu zostały utworzone w sposób programatyczny przy użyciu programu `AWS CLI` (poza `Cloud9`, który został utworzony z poziomu konsoli zarządzającej).
-
-
-## Potencjalne usprawnienia
-
-W przypadku chęciu usprawnienia i optymailzacji rozwiązania możliwa jest dodatkowa konfiguracja obecnej infrastruktury. Jedym z możliwych usprawnień jest reduckja zajmowanego miesjca w serwisie `S3`. Koszyk danych `raw-data-beer-and-wine` może posiadać automatyczne usuwanie danych lub archiwizację danych w serwisie `S3 Glacier`, jako że dane w formacie `xml` po ekstrakcji i zapisaniu ich w formacie `parquet` są danymi nadmiarowymi. 
-
-Potencjalny schemat tego rozwiązania mógłby składać się z następujących kroków:
-
-1. Wykonywanie kodu z sekcji @sec-extraction, mogłoby zostać zautomatyzowane poprzez cykliczne uruchamianie skryptu o danej godzinie np. przy pomocy serwisu AWS Lambda bądź AWS Batch
-2. Po wykonaniu ekstrakcji uruchamiany byłby kod do wstępnego przetwarzania danych zapisujący dane w formacie `parquet` opisany w @sec-prepro oraz w szczegółach w @sec-prepro-chapter
-3. Dane z koszyka `raw-data-beer-and-wine` byłyby usuwane godzinę po zakończeniu kroku numer 2.
-
-W przypadku prezentowanego w tej pracy przykładu optymalizacja przechowywania danych nie jest etapem kluczowym, ze względu na stosunkowo mały rozmiar danych, lecz będzie to miało istotne znaczenie w kosztach analizy, gdy rozmiar danych będzie zwiększony.
+Polecenia programu AWS CLI odpowiadające za utworzenie klastra, wraz z niezbędnymi dodatkowymi plikami zajdują się w @sec-iac. Wszystkie serwisy AWS na potrzeby tego projektu zostały utworzone w sposób programatyczny przy użyciu programu `AWS CLI` (poza `Cloud9`, który został utworzony z poziomu konsoli zarządzającej).

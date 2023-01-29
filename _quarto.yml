@@ -13,7 +13,11 @@ book:
       - 00_schema.qmd
       - 01_preprocessing.qmd
       - 02_analytics.qmd
+    - part: summary.qmd
+  appendices: 
     - attachments.qmd
+    - functions.qmd
+    - other.qmd
   abstract: |
     ## STRESZCZENIE {.unnumbered .unlisted}
     W niniejszej pracy zaprezentowano przykładową infrastrukturę wykorzystującą zasoby chmury 
@@ -49,6 +53,7 @@ format:
     code-fold: true
   pdf:
     cite-method: biblatex
+    biblatexoptions: sorting=nty
     documentclass: scrreprt
     margin-bottom: 2cm
     margin-right: 2cm

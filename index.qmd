@@ -1,4 +1,4 @@
-# Wstęp
+# WSTĘP
 
 ## Technologie big data
 
