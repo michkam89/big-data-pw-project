@@ -90,6 +90,9 @@ format:
         Warszawa, 2023
         \end{center}
       }
+    include-before-body: 
+      text: |
+        \renewcommand{\bibname}{BIBLIOGRAFIA}
     include-after-body:
-     text: |
-      \addcontentsline{toc}{chapter}{Bibliografia}
+      text: |
+        \addcontentsline{toc}{chapter}{BIBLIOGRAFIA}
