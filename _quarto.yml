@@ -52,6 +52,7 @@ format:
     theme: cosmo
     code-fold: true
   pdf:
+    toc: true
     cite-method: biblatex
     biblatexoptions: sorting=nty
     documentclass: scrreprt
@@ -89,3 +90,6 @@ format:
         Warszawa, 2023
         \end{center}
       }
+    include-after-body:
+     text: |
+      \addcontentsline{toc}{chapter}{Bibliografia}

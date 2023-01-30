@@ -2,21 +2,21 @@
 
 ## Budowa infrastruktury
 
-W niniejszej pracy przygotowano podstawowe środowisko pracy do analizy zbiorów danych. Jako środowisko przechowywania danych wykorzystano serwis `S3` który pozwala na przechowywanie wiele typów oraz formatów danych i jest łatwo skalowalny oraz posiada opcje optymalizacji oraz archiwizacji danych. Do zapisania danych w serwisie `S3` wykorzystano usługę `Cloud9`, jednak równie dobrze użytkownik może wykonać opisane w tej pracy kroki na każdej maszynie (również poza chmurą AWS), wystarczy tylko wygenerowanie i użycie odpowiednich kluczy dostępu. `Cloud9` wydaje się jednak prostszym rozwiązaniem, gdyż zawiera już zainstalowany program `AWS CLI`, który może być wykorzystany do zapisania danych w serwisie S3.
+W niniejszej pracy przygotowano podstawowe środowisko pracy do analizy dużych zbiorów danych. Jako środowisko przechowywania danych wykorzystano serwis `S3` który pozwala na przechowywanie wiele typów oraz formatów danych i jest łatwo skalowalny oraz posiada opcje optymalizacji oraz archiwizacji danych. Do zapisania danych w serwisie `S3` wykorzystano usługę `Cloud9`, jednak równie dobrze użytkownik może wykonać opisane w tej pracy kroki na każdej maszynie (również poza chmurą AWS), wystarczy tylko wygenerowanie i użycie odpowiednich kluczy dostępu. `Cloud9` wydaje się jednak prostszym rozwiązaniem, gdyż zawiera już zainstalowany program `AWS CLI`, który może być wykorzystany do zapisania danych w serwisie S3.
 
-Część analityczną zaprojektowano w sposób aby jak najbardziej uprościć konfigurację by móc skupić się na przeprowadzeniu analuzy danych. Wykorzystano popularne narzędzie `Apache Spark` (głównie moduł SQL) oraz serwis `AWS EMR` ze środowiskiem graficznym `Jupyter Hub`, bardzo popularnym wśród programistów/analityków w języku python. Dodatkowo zadbano o to żeby efekty pracy (notebooki) oraz logi były automatycznie zapisywane w osobnych koszykach w serwisie S3. 
+Część analityczną zaprojektowano w sposób, aby jak najbardziej uprościć konfigurację by móc skupić się na przeprowadzeniu analizy danych. Wykorzystano popularne narzędzie `Apache Spark` (głównie moduł `SQL` z API `pySpark`) oraz serwis `AWS EMR` ze środowiskiem graficznym `Jupyter Hub`, bardzo popularnym wśród programistów/analityków korzystających z języka `python`. Dodatkowo, zadbano o to żeby efekty pracy (notebooki) oraz logi z klastra były automatycznie zapisywane w osobnych koszykach w serwisie S3. 
 
-W przypadku chęciu usprawnienia i optymailzacji rozwiązania możliwa jest dodatkowa konfiguracja obecnej infrastruktury. Jedym z możliwych usprawnień jest reduckja zajmowanego miesjca w serwisie `S3`. Koszyk danych `raw-data-beer-and-wine` może posiadać automatyczne usuwanie danych lub archiwizację danych w serwisie `S3 Glacier`, jako że dane w formacie `xml` po ekstrakcji i zapisaniu ich w formacie `parquet` są danymi nadmiarowymi. 
+W przypadku potrzeby usprawnienia i optymailzacji rozwiązania, możliwa jest dodatkowa konfiguracja obecnej infrastruktury. Jedym z możliwych usprawnień jest reduckja zajmowanego miesjca w usłudze `S3`. Koszyk danych `raw-data-beer-and-wine` może posiadać automatyczne usuwanie danych lub archiwizację danych do usługi `S3 Glacier`, jako że dane w formacie `xml` po ekstrakcji i zapisaniu ich w formacie `parquet` są danymi nadmiarowymi. 
 
 Potencjalny schemat tego rozwiązania mógłby składać się z następujących kroków:
 
-1. Wykonywanie kodu z sekcji @sec-extraction, mogłoby zostać zautomatyzowane poprzez cykliczne uruchamianie skryptu o danej godzinie np. przy pomocy serwisu AWS Lambda bądź AWS Batch
-2. Po wykonaniu ekstrakcji uruchamiany byłby kod do wstępnego przetwarzania danych zapisujący dane w formacie `parquet` opisany w @sec-prepro oraz w szczegółach w @sec-prepro-chapter
-3. Dane z koszyka `raw-data-beer-and-wine` byłyby usuwane godzinę po zakończeniu kroku numer 2.
+1. Wykonywanie kodu z sekcji @sec-extraction, mogłoby zostać zautomatyzowane poprzez cykliczne uruchamianie skryptu o danej godzinie np. przy pomocy serwisu `AWS Lambda` bądź `AWS Batch`
+2. Po wykonaniu ekstrakcji, uruchamiany byłby kod do wstępnego przetwarzania danych zapisujący dane w formacie `parquet` opisany w @sec-prepro oraz w szczegółach w @sec-prepro-chapter
+3. Dane z koszyka `raw-data-beer-and-wine` byłyby usuwane np. godzinę po zakończeniu kroku numer 2.
 
 W przypadku prezentowanego w tej pracy przykładu optymalizacja przechowywania danych nie jest etapem kluczowym, ze względu na stosunkowo mały rozmiar danych, lecz będzie to miało istotne znaczenie w kosztach analizy, gdy rozmiar danych będzie zwiększony.
 
-Kolejnym usprawnieniem w celu usprawnienienia tworzenie niezbędnej infrastruktury jest zapisanie jej w postaci projektu typu `Infrastructure as a Code`. Pozwoliłoby to na śledzenie zmian w projekcie przy pomocy kontroli wersji a także dodawanie kolejnych komponentów wspomnianych wyżej lub usuwanie komponentów w sposób programatyczny. Można w tym celu wykorzystać programy `AWS CDK`[@aws_cdk], `Terraform`[@terraform] lub bezpośrednio `AWS CloudFormation`[@aws_cf].
+Kolejnym ulepszeniem w celu usprawnienienia tworzenias niezbędnej infrastruktury, jest zapisanie jej w postaci projektu typu `Infrastructure as a Code`. Pozwoliłoby to na śledzenie zmian w projekcie przy pomocy kontroli wersji, a także dodawanie kolejnych komponentów wspomnianych wyżej lub usuwanie komponentów w sposób programatyczny. Można w tym celu wykorzystać programy `AWS CDK`[@aws_cdk], `Terraform`[@terraform] lub bezpośrednio `AWS CloudFormation`[@aws_cf].
 
 ## Analiza danych
 

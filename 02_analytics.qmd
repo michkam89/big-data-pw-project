@@ -630,7 +630,7 @@ g7 = (ggplot(
     + geom_point() 
     + scale_x_log10()
     + geom_smooth(show_legend=False)
-    + xlab("Liczba wyświetleń - skala lokarytmiczna")
+    + xlab("Liczba wyświetleń (skala logarytmiczna)")
     + ylab("Wartość score")
     )
 g8 = (ggplot(
@@ -644,7 +644,7 @@ g8 = (ggplot(
     + geom_point() 
     + scale_x_log10()
     + geom_smooth(show_legend=False)
-    + xlab("Liczba wyświetleń - skala lokarytmiczna")
+    + xlab("Liczba wyświetleń (skala logarytmiczna)")
     + ylab("Liczba odpowiedzi")
     )
 p7 = pw.load_ggplot(g7, (10,3))
@@ -875,10 +875,10 @@ tags_views_agg = regexp_extract_all(tags_views, r'<(\w+)>', 99, "tags", "tags_sp
     .filter(f.col("view_count").isNotNull())\
     .groupBy('tag')\
     .agg(
-        f.sum("view_count").alias("sum_views")
+        f.sum("view_count").alias("liczba wyświetleń sumarycznie")
     )
 
-tag_top_views = tags_views_agg.orderBy("sum_views", ascending=False).limit(10)
+tag_top_views = tags_views_agg.orderBy("liczba wyświetleń sumarycznie", ascending=False).limit(10)
 tag_top_views_list = tag_top_views.collect()
 ```
 
@@ -889,7 +889,7 @@ tag_top_views_list = tag_top_views.collect()
 #| tbl-cap: Sumaryczne ilości wyświetleń wiadomości zawierających dany znacznik. Przedstawiono 10 najpopularniejszych znaczników.
 
 tag_top_views_pd = pd.DataFrame(tag_top_views_list)
-tag_top_views_pd.columns = ["tag", "sum_views"]
+tag_top_views_pd.columns = ["tag", "liczba wyświetleń sumarycznie"]
 tag_top_views_pd.head(10)
 ```
 
