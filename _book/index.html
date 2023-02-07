@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl" xml:lang="pl"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Michał Kamiński">
+
+<title>Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./results.html" rel="next">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "Brak wyników",
+    "search-matching-documents-text": "dopasowane dokumenty",
+    "search-copy-link-title": "Kopiuj link do wyszukiwania",
+    "search-hide-matches-text": "Ukryj dodatkowe dopasowania",
+    "search-more-match-text": "więcej dopasowań w tym dokumencie",
+    "search-more-matches-text": "więcej dopasowań w tym dokumencie",
+    "search-clear-button-title": "Wyczyść",
+    "search-detached-cancel-button-title": "Anuluj",
+    "search-submit-button-title": "Zatwierdź"
+  }
+}</script>
+<script src="site_libs/quarto-diagram/mermaid.min.js"></script>
+<script src="site_libs/quarto-diagram/mermaid-init.js"></script>
+<link href="site_libs/quarto-diagram/mermaid.css" rel="stylesheet">
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</a> 
+    </div>
+      </div>
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WSTĘP</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./results.html" class="sidebar-item-text sidebar-link">WYNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00_schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Schemat infrastruktury rozwiązania</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preprocessing.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Wstępna obróbka danych</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_analytics.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WNIOSKI I ZAKOŃCZENIE</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">ZAŁĄCZNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./attachments.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Budowanie infrastruktury chmurowej</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./functions.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Definicje funkcji</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Repozytorium kodu wykorzystanego w pracy</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Spis treści</h2>
+   
+  <ul>
+  <li><a href="#wstęp" id="toc-wstęp" class="nav-link active" data-scroll-target="#wstęp"><span class="toc-section-number">1</span>  WSTĘP</a>
+  <ul class="collapse">
+  <li><a href="#technologie-big-data" id="toc-technologie-big-data" class="nav-link" data-scroll-target="#technologie-big-data"><span class="toc-section-number">1.1</span>  Technologie big data</a></li>
+  <li><a href="#formaty-danych" id="toc-formaty-danych" class="nav-link" data-scroll-target="#formaty-danych"><span class="toc-section-number">1.2</span>  Formaty danych</a></li>
+  <li><a href="#wykorzystanie-zasobów-chmurowych" id="toc-wykorzystanie-zasobów-chmurowych" class="nav-link" data-scroll-target="#wykorzystanie-zasobów-chmurowych"><span class="toc-section-number">1.3</span>  Wykorzystanie zasobów chmurowych</a></li>
+  <li><a href="#cel-pracy" id="toc-cel-pracy" class="nav-link" data-scroll-target="#cel-pracy"><span class="toc-section-number">1.4</span>  Cel pracy</a></li>
+  </ul></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor</div>
+    <div class="quarto-title-meta-contents">
+             <p>Michał Kamiński </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+<div>
+  <div class="abstract">
+    <div class="abstract-title">Abstrakt</div>
+    <h2 id="streszczenie" class="unnumbered unlisted anchored">STRESZCZENIE</h2>
+    <p>W niniejszej pracy zaprezentowano przykładową infrastrukturę wykorzystującą zasoby chmury AWS (ang. <em>Amazon Web Services</em>) umożliwiającą analizę dużych zbiorów danych za pomocą klastów obliczeniowych przy użyciu serwisu AWS EMR (ang. <em>Elastic Map Reduce</em>). Zaprezentowano, jak przygotować przykładowe dane oraz dokonano wstępnej analizy danych pochodzących z repozytorium Stack Exchange przy użyciu technologii Spark, wykorzystując API w języku Python (<code>pySpark</code>)</p>
+    <p>Słowa kluczowe: <strong>Big Data, Spark, AWS, EMR, S3</strong></p>
+    <hr>
+    <h2 id="large-scale-analysis-of-data-from-internet-forum-using-cloud-infrastructure-resources" class="unnumbered unlisted anchored">Large scale analysis of data from internet forum using cloud infrastructure resources</h2>
+    <p>The thesis demonstrates the cloud infrastructure built using Amazon Web Services (AWS), that allows efficient analysis of large data sets (Big Data) using distributed computing system with example of AWS Elastic Map Reduce (<code>EMR</code>) service. As a demonstration of data preparation and initial analysis, python Spark API (<code>pySpark</code>) was used to analyze data from one of Stack Exchange forum.</p>
+    <p>Keywords: <strong>Big Data, Spark, AWS, EMR, S3</strong></p>
+  </div>
+</div>
+
+</header>
+
+<section id="wstęp" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> WSTĘP</h1>
+<section id="technologie-big-data" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="technologie-big-data"><span class="header-section-number">1.1</span> Technologie big data</h2>
+<p>Ilość przetwarzanych danych cyfrowych na świecie rośnie w tempie logarytmicznym i obecnie podawana jest w dziesiątkach zettabajtów <span class="citation" data-cites="bartley_2022">(<a href="#ref-bartley_2022" role="doc-biblioref">Bartley 2022</a>)</span>. Wraz ze wzrostem ilości danych, niezbędne jest optymalizowanie bądź zwiększanie miejsca potrzebnego na ich przechowywanie oraz ulepszanie algorytmów pozwalających na dokonanie analiz w czasie umożliwiającym na szybkie wyciąganie wniosków i podejmowania stosownych akcji.</p>
+<p>Znaczącym usprawnieniem procesu analitycznego opartego na dużych ilościach danych było opracowanie algorytmu <code>MapReduce</code> <span class="citation" data-cites="dean_ghhemawat_2010">(<a href="#ref-dean_ghhemawat_2010" role="doc-biblioref">Dean i Ghhemawat 2010</a>)</span>, wykorzystującego równoległe przetwarzanie zbiorów danych w klastrach komputerowych. Opiera się na stosowaniu dwóch “kroków”. Kroku <code>map</code>, odpowiadającego za wykonaywanie zadań w węzłach roboczych (niezależnie od siebie) a następnie kroku <code>reduce</code>, który zbiera dane z węzłów roboczych i dokonuje kroku redukcji danych poprzez np. agregację.</p>
+<p>Klastry komputerowe mogą być wykorzystywane nie tylko do obliczeń, ale również do przechowywania danych. Platformą, która wykorzystuje rozproszony system plików jest np. <code>Apache Hadoop</code> i sytem HDFS <span class="citation" data-cites="apache_hadoop">(<a href="#ref-apache_hadoop" role="doc-biblioref"><span>„Apache Hadoop”</span>, b.d.</a>)</span>. System HDFS daje możliwość na zwiększenie dostępności danych poprzez ich replikację. W przypadku niedostępności jednego z węzłów roboczych, dane są dostępne na pozostałych węzłach w postaci kopii. Dodatkowo poprzez odpowiednie partycjonowanie danych można usprawnić działania analityczne, które ograniczą wysyłanie danych po sieci klastra <span class="citation" data-cites="navarro_2017">(<a href="#ref-navarro_2017" role="doc-biblioref">Navarro 2017</a>)</span>.</p>
+<p><code>Apache Hadoop</code> i <code>MapReduce</code> mają jednak swoje ograniczenia, z czego jednym z bardziej znaczących jest konieczność wczytywania danych z dysku dla każdego zadania. Jest to mało wydajne przy zadaniach wykonywanych w sposób iteracyjny jak np. trenowanie modeli statystycznych z wieloma hiperparametrami <span class="citation" data-cites="spark_2010">(<a href="#ref-spark_2010" role="doc-biblioref">Zaharia i in. 2010</a>)</span>. W pracy <span class="citation" data-cites="spark_2010">Zaharia i in. (<a href="#ref-spark_2010" role="doc-biblioref">2010</a>)</span>, zaprezentowano techologię <code>Spark</code> (obecnie <code>Apache Spark</code>), która obchodzi te ograniczenia poprzez wykorzystanie dużo szybszej pamięci RAM oraz wprowadzenie obiektów RDD (ang. <em>Resilient Distributed Datasets</em>) <span class="citation" data-cites="rdd_2012">(<a href="#ref-rdd_2012" role="doc-biblioref">Zaharia i in. 2012</a>)</span>. RDD są obiektami niemodyfikowalnymi (ang. <em>immutable</em>), rozproszonymi po klastrze i co najistotniejsze przechowywane w pamięci RAM. Dzieki temu obiekty RDD mogą być wykorzystywane wielokrotnie bez konieczności wykonywania operacji odczytu z dysku, który znacząco obniża tempo wykonywania obliczeń. Autorzy <span class="citation" data-cites="spark_2010">Zaharia i in. (<a href="#ref-spark_2010" role="doc-biblioref">2010</a>)</span> szacują że <code>Apache Spark</code> jest około 10 razy szybszy niż <code>Apache Hadoop</code> w wykonywaniu iteracyjnym operacji związanych z uczeniem maszynowym.</p>
+</section>
+<section id="formaty-danych" class="level2" data-number="1.2">
+<h2 data-number="1.2" class="anchored" data-anchor-id="formaty-danych"><span class="header-section-number">1.2</span> Formaty danych</h2>
+<p>W czasach sprzed tzw. ery Big Data, dane przechowywane były (oraz często dalej są) w relacyjnych bazach danych. W najprostszym założeniu (pomijając możliwości indeksowania oraz stosowania kluczy) dane przetrzymywane są w klasycznym schemacie, jedna obserwacja - jeden wiersz, jedna cecha - jedna kolumna (zobacz <a href="#tbl-logical">Tab.&nbsp;<span>1.1</span></a>). W jaki sposób te dane są przechowywane na dysku obrazuje za to <a href="#fig-row">Rys.&nbsp;<span>1.1</span></a>. Przechowywanie informacji w ten sposób powoduje, że aby dokonać agregacji cechy znajdującej się w kolumnie o nazwie <code>kolumna1</code>, algorytm musi przeskanować wszystkie wiersze wczytując je do pamięci.</p>
+<p>Rozwiązaniem, które usprawnia ten proces i jest wykorzystywane w rozwiązaniach typu Big Data jest przechowywanie danych w sposób kolumnowy, zaprezentowany na <a href="#fig-col">Rys.&nbsp;<span>1.2</span></a>. W tym przypadku, jeżeli naszym celem jest jedynie zagregowanie cechy <code>kolumna1</code>, to tylko dane z tej kolumny zostaną wczytanie do pamięci, ponieważ algorytm wie, w kórym miejscu na dysku znajdują się dane z tej kolumny. Przykładem formatów kolumnowych w systemie <code>Apache Hadoop</code> są <code>RCFile</code> oraz <code>ORC</code> a dodatkowo bardzo popularnym formatem jest format <code>Apache Parquet</code>.</p>
+<p>Dodatkową zaletą formatów kolumnowych jest kompresja danych i zwiększenie szybkości wykonywania zapytań <a href="#tbl-parquet">Tab.&nbsp;<span>1.2</span></a>.</p>
+<div id="tbl-logical" class="anchored">
+<table class="table">
+<caption>Tab.&nbsp;1.1: Zobrazowanie tabeli rozrysowanej na <a href="#fig-row">Rys.&nbsp;<span>1.1</span></a> oraz <a href="#fig-col">Rys.&nbsp;<span>1.2</span></a></caption>
+<thead>
+<tr class="header">
+<th style="text-align: center;"></th>
+<th style="text-align: center;">kolumna1</th>
+<th style="text-align: center;">kolumna2</th>
+<th style="text-align: center;">kolumna3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">wiersz1</td>
+<td style="text-align: center;">A</td>
+<td style="text-align: center;">B</td>
+<td style="text-align: center;">C</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">wiersz2</td>
+<td style="text-align: center;">D</td>
+<td style="text-align: center;">E</td>
+<td style="text-align: center;">F</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">wiersz3</td>
+<td style="text-align: center;">G</td>
+<td style="text-align: center;">H</td>
+<td style="text-align: center;">I</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">wiersz4</td>
+<td style="text-align: center;">J</td>
+<td style="text-align: center;">K</td>
+<td style="text-align: center;">L</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="cell" data-fig-width="9.5">
+<div class="cell-output-display">
+<div id="fig-row" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p>
+</p><pre class="mermaid mermaid-js" data-tooltip-selector="#mermaid-tooltip-1">graph TB
+    subgraph wiersz4
+        direction LR
+        J
+        K
+        L
+    end
+    subgraph wiersz3
+        direction LR
+        G
+        H
+        I
+    end
+    subgraph wiersz2
+        direction LR
+        D
+        E
+        F
+    end
+    subgraph wiersz1 
+        direction LR
+        A
+        B
+        C
+    end
+</pre>
+<div id="mermaid-tooltip-1" class="mermaidTooltip">
+
+</div>
+<p></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;1.1: Przykład wierszowego formatu danych. Kolejność wierszy przedstawia pozycję na dysku.</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-fig-width="11">
+<div class="cell-output-display">
+<div id="fig-col" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p>
+</p><pre class="mermaid mermaid-js" data-tooltip-selector="#mermaid-tooltip-2">graph TB
+    subgraph split2
+    direction LR
+        subgraph col4["kolumna1"]
+            direction LR
+            G
+            J
+        end
+        subgraph col5["kolumna2"]
+            direction LR
+            H
+            K
+        end
+        subgraph col6["kolumna3"]
+            direction LR
+            I
+            L
+        end
+    end
+    subgraph split1
+        subgraph kolumna1 
+            direction LR
+            A
+            D
+        end    
+        subgraph kolumna2
+            direction LR
+            B
+            E
+        end
+        subgraph kolumna3
+            direction LR
+            C
+            F
+        end
+    end
+</pre>
+<div id="mermaid-tooltip-2" class="mermaidTooltip">
+
+</div>
+<p></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;1.2: Przykład kolumnowego formatu danych. Kolejność wierszy przedstawia pozycję na dysku.</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div id="tbl-parquet" class="anchored">
+<table class="table">
+<caption>Tab.&nbsp;1.2: Porównanie przykładowych danych przetrzymywanych w formacie CSV oraz Apache Parquet <a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></caption>
+<colgroup>
+<col style="width: 17%">
+<col style="width: 17%">
+<col style="width: 32%">
+<col style="width: 25%">
+<col style="width: 7%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Format</th>
+<th>Rozmiar danych</th>
+<th>Czas wykonania zapytania (s)</th>
+<th>Ilość wczytanych danch</th>
+<th>Koszt ($)<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>CSV</td>
+<td>1 TB</td>
+<td>236</td>
+<td>1.15 TB</td>
+<td>5.75</td>
+</tr>
+<tr class="even">
+<td>Apache Parquet</td>
+<td>130 GB</td>
+<td>6.78</td>
+<td>2.51 GB</td>
+<td>0.01</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="wykorzystanie-zasobów-chmurowych" class="level2" data-number="1.3">
+<h2 data-number="1.3" class="anchored" data-anchor-id="wykorzystanie-zasobów-chmurowych"><span class="header-section-number">1.3</span> Wykorzystanie zasobów chmurowych</h2>
+<p>W obecnych czasach, zapotrzebowanie na możliwość szybkiej analizy dużej ilości danych staje się wartością kluczową w zyskiwaniu przewagi biznesowej nad konkurencją <span class="citation" data-cites="team_2021">(<a href="#ref-team_2021" role="doc-biblioref"><span>„Why and how companies need to take advantage of (BIG) data science”</span> 2021</a>)</span>. Modele biznesowe opierające się na własnej infrastukturze bądź własnym centrum analizy danych, wymagają ciągłego wsparcia i utrzymywania, niezależnie czy w danym momencie te zasoby są wykorzystywane czy też nie. Dodatkowo, w celu zwiększenia mocy analitycznych, często niezbędny jest zakup nowych maszyn, procesorów czy dysków, co znacząco wydłuża czas do otrzymywania wyników.</p>
+<p>Rozwiązaniemm na te problemy może wyć wykorzystanie zasobów chmurowych. Jednym z wiodących dostarczycieli takich usług są Amazon Web Services (AWS), Google Cloud Platform (GCP) czy też Microsoft Azure, ale rynek ciągle rośnie i na popularności zyskują kolejni dostawcy <span class="citation" data-cites="maguire_2023">(<a href="#ref-maguire_2023" role="doc-biblioref">Maguire 2023</a>)</span>. Dzięki wykorzystywaniu zasobów chmurowych użytkownicy są w stanie dynamicznie zwiększać lub zmniejszać ilość zasobów, z których korzystają. Mogą to robić w sposób manualny, lub w momencie gdy zapotrzebowanie wzrasta, skorzystać z usługi automatycznego skalowania. Użycie takiego podejścia ma uzasadnione zastosowanie w momencie gdy pewne analizy wykonywane są w większych odstępach czasu, np. co miesiąc (np. na potrzeby miesięcznych podsumowań) lub w przypadku sklepów internetowych, gdy ruch na stronach okresowo wzrasta kilkukrotnie w stosunku do przeciętnego obciążenia sieci (np. w okresach świąt Bożego Narodzenia czy tzw. Czarnego Piątku - ang. <em>Black Friday</em>).</p>
+<p>W rozwiązaniach chmurowych użytkownik ma do wyboru czy tworzy własną infrastrukturę i odpowiada za jej utrzymywanie oraz odpowiednie aktualizacje (imituje w ten sposób posiadanie własych zasobów, np. usługa <code>AWS EC2</code> <span class="citation" data-cites="aws_ec2">(<a href="#ref-aws_ec2" role="doc-biblioref"><span>„Amazon EC2: Secure and resizable compute capacity for virtually any workload”</span>, b.d.</a>)</span>) czy też korzysta z usług typu <code>serverless</code>, gdzie korzysta z gotowej usługi i płaci jedynie za czas jej pracy np. usługi <code>AWS Lambda</code> <span class="citation" data-cites="aws_lambda">(<a href="#ref-aws_lambda" role="doc-biblioref"><span>„AWS Lambda: Run code without thinking about servers or clusters”</span>, b.d.</a>)</span> czy <code>AWS Rekognition</code> <span class="citation" data-cites="aws_rekognition">(<a href="#ref-aws_rekognition" role="doc-biblioref"><span>„Amazon Rekognition: Automate your image and video analysis with machine learning”</span>, b.d.</a>)</span>. Korzystanie z usług <code>serverless</code> odbywa się jednak kosztem braku możliwości wpływu na sposób działania aplikacji, którą w części przypadków musi potraktować jako rozwiązanie typu <code>black-box</code>. Przykładem może być wspomniana usługa <code>AWS Rekognition</code>, która jest usługą z dziedziny uczenia maszynowego do analizy plików wideo oraz audio. Użytkownik nie wie jakie modele statystyczne odpowiadają za analizę danych oraz wynik końcowy.</p>
+</section>
+<section id="cel-pracy" class="level2" data-number="1.4">
+<h2 data-number="1.4" class="anchored" data-anchor-id="cel-pracy"><span class="header-section-number">1.4</span> Cel pracy</h2>
+<p>Celem niniejszej pracy jest utworzenie infrastruktury w chmurze obliczeniowej AWS pozwalające na wielkoskalową analizy danych w sytemie rozproszonym przy użyciu technologii <code>Spark</code>.</p>
+<p>Do stworzenia przykładowego projektu wykorzystano dane ze strony Stack Exchange <span class="citation" data-cites="stack_ex">(<a href="#ref-stack_ex" role="doc-biblioref"><span>„Stack Exchange”</span>, b.d.</a>)</span> zawierającej zestawy danych pochodzące z forów społecznościoowych. Analizę ograniczono do danych pochodzących z forum o nazwie <em>Beer, Wine and Spirits</em> <span class="citation" data-cites="stack_beer">(<a href="#ref-stack_beer" role="doc-biblioref"><span>„Stack Exchange - Beer, Wine and Spirits”</span>, b.d.</a>)</span></p>
+<p>Wyniki niniejszej pracy mogą posłużyć jako podstawa dla innych projektów, chcących rozszerzać wiedzę o zachowaniach użytkowników oraz poruszanej tematyki na różnych forach internetowych.</p>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-aws_ec2" class="csl-entry" role="doc-biblioentry">
+<span>„Amazon EC2: Secure and resizable compute capacity for virtually any workload”</span>. b.d. Amazon Web Services, Inc. <a href="https://aws.amazon.com/ec2/">https://aws.amazon.com/ec2/</a>.
+</div>
+<div id="ref-aws_rekognition" class="csl-entry" role="doc-biblioentry">
+<span>„Amazon Rekognition: Automate your image and video analysis with machine learning”</span>. b.d. Amazon Web Services, Inc. <a href="https://aws.amazon.com/rekognition/">https://aws.amazon.com/rekognition/</a>.
+</div>
+<div id="ref-apache_hadoop" class="csl-entry" role="doc-biblioentry">
+<span>„Apache Hadoop”</span>. b.d. <a href="https://hadoop.apache.org/">https://hadoop.apache.org/</a>.
+</div>
+<div id="ref-aws_lambda" class="csl-entry" role="doc-biblioentry">
+<span>„AWS Lambda: Run code without thinking about servers or clusters”</span>. b.d. Amazon Web Services, Inc. <a href="https://aws.amazon.com/lambda/">https://aws.amazon.com/lambda/</a>.
+</div>
+<div id="ref-bartley_2022" class="csl-entry" role="doc-biblioentry">
+Bartley, Kevin. 2022. <span>„Data Statistics - how much data is there in the world?”</span> <em>Rivery</em>, listopad. <a href="https://rivery.io/blog/big-data-statistics-how-much-data-is-there-in-the-world/">https://rivery.io/blog/big-data-statistics-how-much-data-is-there-in-the-world/</a>.
+</div>
+<div id="ref-dean_ghhemawat_2010" class="csl-entry" role="doc-biblioentry">
+Dean, Jeffrey, i Sanjay Ghhemawat. 2010. System and method for efficient large-scale data processing, issued styczeń 2010.
+</div>
+<div id="ref-maguire_2023" class="csl-entry" role="doc-biblioentry">
+Maguire, James. 2023. <span>„Top 16 cloud service providers and companies in 2023”</span>. <em>Datamation</em>. <a href="https://www.datamation.com/cloud/cloud-service-providers/">https://www.datamation.com/cloud/cloud-service-providers/</a>.
+</div>
+<div id="ref-navarro_2017" class="csl-entry" role="doc-biblioentry">
+Navarro, Álvaro. 2017. <span>„Understanding the data partitioning technique”</span>. <em>Datio</em>. <a href="https://www.datio.com/iaas/understanding-the-data-partitioning-technique/">https://www.datio.com/iaas/understanding-the-data-partitioning-technique/</a>.
+</div>
+<div id="ref-stack_ex" class="csl-entry" role="doc-biblioentry">
+<span>„Stack Exchange”</span>. b.d. <em>Hot Questions - Stack Exchange</em>. <a href="https://stackexchange.com/">https://stackexchange.com/</a>.
+</div>
+<div id="ref-stack_beer" class="csl-entry" role="doc-biblioentry">
+<span>„Stack Exchange - Beer, Wine and Spirits”</span>. b.d. <em>Stack Exchange Data Explorer</em>. <a href="https://data.stackexchange.com/beer/queries">https://data.stackexchange.com/beer/queries</a>.
+</div>
+<div id="ref-team_2021" class="csl-entry" role="doc-biblioentry">
+<span>„Why and how companies need to take advantage of (BIG) data science”</span>. 2021. <em>Exa Futures</em>. <a href="https://exafutures.com/en/why-how-companies-need-to-take-advantage-of-big-data-science">https://exafutures.com/en/why-how-companies-need-to-take-advantage-of-big-data-science</a>.
+</div>
+<div id="ref-rdd_2012" class="csl-entry" role="doc-biblioentry">
+Zaharia, Matei, Mosharaf Chowdhury, Tathagata Das, Ankur Dave, Justin Ma, Murphy McCauley, Michael J. Franklin, Scott Shenker, i Ion Stoica. 2012. <span>„Resilient Distributed Datasets: A Fault-Tolerant Abstraction for In-Memory Cluster Computing”</span>. <a href="http://people.csail.mit.edu/matei/papers/2012/nsdi_spark.pdf">http://people.csail.mit.edu/matei/papers/2012/nsdi_spark.pdf</a>.
+</div>
+<div id="ref-spark_2010" class="csl-entry" role="doc-biblioentry">
+Zaharia, Matei, Mosharaf Chowdhury, Michael J. Franklin, Scott Shenker, i Ion Stoica. 2010. <span>„Spark: Cluster Computing with Working Sets”</span>. <a href="http://people.csail.mit.edu/matei/papers/2010/hotcloud_spark.pdf">http://people.csail.mit.edu/matei/papers/2010/hotcloud_spark.pdf</a>.
+</div>
+</div>
+</section>
+</section>
+<section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn1"><p>https://www.databricks.com/glossary/what-is-parquet<a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Szacunkowe koszty przechowywania oraz analizy w serwisie chmurze AWS<a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Skopiowano!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Skopiowano!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./results.html" class="pagination-link">
+        <span class="nav-page-text">WYNIKI</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+</body></html>

@@ -1,0 +1,99 @@
+---
+format:
+  revealjs: 
+    theme: simple
+language: ../_language.yml
+---
+
+## _Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark_
+<br><br><br>
+Michał Kamiński
+
+# Cel pracy
+
+- Szybkie i powtarzalne dostarczenie infrastruktury do wykonywania analiz na klastrze obliczeniowym `AWS EMR`
+- Demonstracja użycia ww. infrastruktury przy użyciu technologii `Spark` 
+
+# Infrastruktura i dane
+
+## Schemat infrastruktury
+
+```{python}
+#| eval: false
+from diagrams import Node, Edge, Cluster, Diagram
+from diagrams.aws.compute import EC2
+from diagrams.aws.analytics import EMRCluster
+from diagrams.aws.storage import S3
+from diagrams.aws.devtools import Cloud9
+#import warnings
+#warnings.filterwarnings("ignore")
+with Diagram("", show=False, filename="schema_simple") as diag:
+    
+    with Cluster("AWS VPC", direction="LR"):
+        c9 = Cloud9("Cloud9") 
+        emr = EMRCluster("EMR")
+        data = S3("S3")
+
+        c9 >> Edge(label="dane xml + \n pliki konfiguracyjne") >> data 
+        data >> Edge(label="dane surowe + \n dane przetworzone  + \n notebooki + \n logi", reverse=True) >> emr
+```
+
+![](schema_simple.png){fig-align="center"}
+
+```{mermaid}
+%%| eval: false
+%%| include: false
+%%| fig-width: 10
+graph LR
+    subgraph chmura AWS
+        cloud9 -->|dane xml| S3 <-->|"dane surowe +<br>dane wstępne+<br>pozostałe"| EMR
+    end
+```
+
+- `Cloud9` jako środowisko konfiguracyjne
+- 5 koszyków danych `S3` (dane xml, dane wstępne, repozytorium notebooków, repozytorium logów, pliki konfiguracyjne)
+- Klaster `EMR` (1 MASTER, 2 CORE)
+
+## Dane
+
+zawartość
+
+## Wstępne przetwarzanie (pySpark)
+
+1. Wczytanie danych xml - `spark-xml_2.12:0.15.0`
+2. Utworzenie schematów danych
+3. Czyszczenie danych tekstowych (tagi html, znaki specjalne) ^[np. \<p\>, \\n, \\t, \\s]
+4. Zapis w formacie `parquet`
+
+::: {.callout-note}
+50% redukcja rozmiaru danych (`xml` vs `parquet`)
+:::
+
+# Analiza (pySpark)
+
+## Aktywność na forum
+
+:::: {.columns}
+
+::: {.column width="40%"}
+![Liczba postów w czasie](fig-ryc2-output-1.png)
+:::
+
+::: {.column width="60%" }
+![Stosunek pytań do odpowiedzi w czasie](fig-ryc3-output-1.png)
+:::
+
+::::
+
+- średnio co drugie pytanie otrzymywało odpowiedź (0.47 +/- 0.22)
+
+## Statystyki odpowiedzi
+
+![Rozkład ocen](fig-ryc9-output-1.png)
+
+
+| is_accepted | średnia    | std| min | max | mediana |
+|-------------|------------|-----------------------|-----|-----|---------|
+| True        | 6.40   | 5.92              | 0   | 46  | 5       |
+| False       | 2.58  | 2.74              | -4  | 26  | 2       |
+| None        | 2.76   | 3.18              | -5  | 30  | 2       |
