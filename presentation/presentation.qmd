@@ -1,13 +1,15 @@
 ---
 format:
-  revealjs: 
-    theme: simple
+#   revealjs: 
+#     theme: simple
+  beamer: 
+    theme: default   
 language: ../_language.yml
+title: |
+    Wieloskalowa analiza danych 
+subtitle: z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark
+author: Michał Kamiński
 ---
-
-## _Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark_
-<br><br><br>
-Michał Kamiński
 
 # Cel pracy
 
@@ -54,9 +56,13 @@ graph LR
 - 5 koszyków danych `S3` (dane xml, dane wstępne, repozytorium notebooków, repozytorium logów, pliki konfiguracyjne)
 - Klaster `EMR` (1 MASTER, 2 CORE)
 
+-----
+
 ## Dane
 
 zawartość
+
+-----
 
 ## Wstępne przetwarzanie (pySpark)
 
@@ -87,13 +93,97 @@ zawartość
 
 - średnio co drugie pytanie otrzymywało odpowiedź (0.47 +/- 0.22)
 
-## Statystyki odpowiedzi
+-----
+
+## Statystyki postów
 
 ![Rozkład ocen](fig-ryc9-output-1.png)
-
 
 | is_accepted | średnia    | std| min | max | mediana |
 |-------------|------------|-----------------------|-----|-----|---------|
 | True        | 6.40   | 5.92              | 0   | 46  | 5       |
 | False       | 2.58  | 2.74              | -4  | 26  | 2       |
 | None        | 2.76   | 3.18              | -5  | 30  | 2       |
+
+-----
+
+![Czas do akceptacji odpowiedzi](fig-ryc10-output-1.png)
+
+- Po odrzuceniu wartości odstających średni czas do akceptacji wyniósł ~66,5h (mediana 10,5h)
+
+-----
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+![](fig-ryc5-output-1.png)
+
+:::
+
+::: {.column width="50%" text-align="center"}
+
+- najlepsze pytania (top) - średnia ocen 20.6 oraz 4 odpowiedzi
+- najgorsze pytania (bottom) - średnia ocen 0.4 oraz 1 odpowiedź
+
+
+:::
+
+::::
+
+-----
+
+## Analiza tematów postów - tagi
+
+:::: {.columns}
+
+::: {.column width="30%"}
+\tiny
+
+|tag |liczba wyświetleń|
+|----|----------------------------:|
+|taste |1 330 670|
+|health |1 286 001|
+|preservation |682 216|
+|storage |542 860|
+|whiskey |464 756|
+|bourbon |330 268|
+|brewing |307 892|
+|ipa |291 935|
+|spirits |255 328|
+|drinking |225 924|
+
+\normalsize
+:::
+
+::: {.column width="70%" }
+
+![](fig-ryc7-output-1.png)
+
+:::
+
+::::
+
+![](fig-ryc8-output-1.png)
+
+-----
+
+## Analiza tematów postów - tytuły
+\small
+|etap|przykład|
+|------|----------------|
+|(1) tytuł |What is a citra hop, and how does it differ from other hops?|
+|(2) token |[what, is, citra, hop, and, how, does, it, differ, from, other, hops]|
+|(3) -- stop words |[citra, hop, differ, hops]|
+|(4) stemming |[citra, hop, differ, hop]|
+
+
+
+|stem| ilość wystąpień|
+|------|------|
+|beer| 476|
+|wine| 147|
+|drink| 104|
+|alcohol| 88|
+|differ| 72|
+|bottl| 68|
