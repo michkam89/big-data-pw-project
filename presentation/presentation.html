@@ -9,7 +9,8 @@
 <link href="presentation_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
   <meta name="generator" content="quarto-1.2.313">
 
-  <title>presentation</title>
+  <meta name="author" content="Michał Kamiński">
+  <title>Wieloskalowa analiza danych</title>
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
@@ -325,10 +326,18 @@
   <div class="reveal">
     <div class="slides">
 
+<section id="title-slide" class="quarto-title-block center">
+  <h1 class="title"><p>Wieloskalowa analiza danych</p></h1>
+  <p class="subtitle">z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</p>
 
-<section id="wieloskalowa-analiza-danych-z-forum-internetowego-przy-użyciu-zasobów-infrastruktury-chmurowej-aws-oraz-technologii-spark" class="slide level2">
-<h2><em>Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</em></h2>
-<p><br><br><br> Michał Kamiński</p>
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Michał Kamiński 
+</div>
+</div>
+</div>
+
 </section>
 <section id="cel-pracy" class="title-slide slide level1 center">
 <h1>Cel pracy</h1>
@@ -414,8 +423,8 @@
 <li>średnio co drugie pytanie otrzymywało odpowiedź (0.47 +/- 0.22)</li>
 </ul>
 </section>
-<section id="statystyki-odpowiedzi" class="slide level2">
-<h2>Statystyki odpowiedzi</h2>
+<section id="statystyki-postów" class="slide level2">
+<h2>Statystyki postów</h2>
 
 <img data-src="fig-ryc9-output-1.png" class="r-stretch quarto-figure-center"><p class="caption">Rozkład ocen</p><table>
 <colgroup>
@@ -460,6 +469,153 @@
 <td>-5</td>
 <td>30</td>
 <td>2</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section class="slide level2">
+
+
+<img data-src="fig-ryc10-output-1.png" class="r-stretch quarto-figure-center"><p class="caption">Czas do akceptacji odpowiedzi</p><ul>
+<li>Po odrzuceniu wartości odstających średni czas do akceptacji wyniósł ~66,5h (mediana 10,5h)</li>
+</ul>
+</section>
+<section class="slide level2">
+
+<div class="columns">
+<div class="column" style="width:50%;">
+<p><img data-src="fig-ryc5-output-1.png"></p>
+</div><div class="column" data-text-align="center" style="width:50%;">
+<ul>
+<li>najlepsze pytania (top) - średnia ocen 20.6 oraz 4 odpowiedzi</li>
+<li>najgorsze pytania (bottom) - średnia ocen 0.4 oraz 1 odpowiedź</li>
+</ul>
+</div>
+</div>
+</section>
+<section id="analiza-tematów-postów---tagi" class="slide level2">
+<h2>Analiza tematów postów - tagi</h2>
+<div class="columns">
+<div class="column" style="width:30%;">
+<table>
+<thead>
+<tr class="header">
+<th>tag</th>
+<th style="text-align: right;">liczba wyświetleń</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>taste</td>
+<td style="text-align: right;">1 330 670</td>
+</tr>
+<tr class="even">
+<td>health</td>
+<td style="text-align: right;">1 286 001</td>
+</tr>
+<tr class="odd">
+<td>preservation</td>
+<td style="text-align: right;">682 216</td>
+</tr>
+<tr class="even">
+<td>storage</td>
+<td style="text-align: right;">542 860</td>
+</tr>
+<tr class="odd">
+<td>whiskey</td>
+<td style="text-align: right;">464 756</td>
+</tr>
+<tr class="even">
+<td>bourbon</td>
+<td style="text-align: right;">330 268</td>
+</tr>
+<tr class="odd">
+<td>brewing</td>
+<td style="text-align: right;">307 892</td>
+</tr>
+<tr class="even">
+<td>ipa</td>
+<td style="text-align: right;">291 935</td>
+</tr>
+<tr class="odd">
+<td>spirits</td>
+<td style="text-align: right;">255 328</td>
+</tr>
+<tr class="even">
+<td>drinking</td>
+<td style="text-align: right;">225 924</td>
+</tr>
+</tbody>
+</table>
+</div><div class="column" style="width:70%;">
+<p><img data-src="fig-ryc7-output-1.png"></p>
+</div>
+</div>
+<p><img data-src="fig-ryc8-output-1.png"></p>
+</section>
+<section id="analiza-tematów-postów---tytuły" class="slide level2">
+<h2>Analiza tematów postów - tytuły</h2>
+<table>
+<colgroup>
+<col style="width: 27%">
+<col style="width: 72%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>etap</th>
+<th>przykład</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>(1) tytuł</td>
+<td>What is a citra hop, and how does it differ from other hops?</td>
+</tr>
+<tr class="even">
+<td>(2) token</td>
+<td>[what, is, citra, hop, and, how, does, it, differ, from, other, hops]</td>
+</tr>
+<tr class="odd">
+<td>(3) – stop words</td>
+<td>[citra, hop, differ, hops]</td>
+</tr>
+<tr class="even">
+<td>(4) stemming</td>
+<td>[citra, hop, differ, hop]</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr class="header">
+<th>stem</th>
+<th>ilość wystąpień</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>beer</td>
+<td>476</td>
+</tr>
+<tr class="even">
+<td>wine</td>
+<td>147</td>
+</tr>
+<tr class="odd">
+<td>drink</td>
+<td>104</td>
+</tr>
+<tr class="even">
+<td>alcohol</td>
+<td>88</td>
+</tr>
+<tr class="odd">
+<td>differ</td>
+<td>72</td>
+</tr>
+<tr class="even">
+<td>bottl</td>
+<td>68</td>
 </tr>
 </tbody>
 </table>

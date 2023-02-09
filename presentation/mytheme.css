@@ -1,4 +1,7 @@
 /*-- scss:rules --*/
-.h1 title {
-    font-size: small;
+th {
+    font-size: 10px;
+}
+tg {
+    font-size: 10px;
 }

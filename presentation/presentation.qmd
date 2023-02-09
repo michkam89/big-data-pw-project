@@ -1,7 +1,7 @@
 ---
 format:
 #   revealjs: 
-#     theme: simple
+#     theme: [mytheme.css, simple]
   beamer: 
     theme: default   
 language: ../_language.yml
@@ -17,6 +17,17 @@ author: Michał Kamiński
 - Demonstracja użycia ww. infrastruktury przy użyciu technologii `Spark` 
 
 # Infrastruktura i dane
+
+## Dane
+
+- Forum internetowe _Beer, Wine and Spirits_ [^1]
+- 6 zbiorów danych w formacie `xml`, połączonych kluczami
+- Całkowity rozmiar ~20MB
+- Dane z ~8,5 lat, 3700 postów
+
+[^1]: Źródło - https://stackexchange.com/
+
+-----
 
 ## Schemat infrastruktury
 
@@ -55,12 +66,6 @@ graph LR
 - `Cloud9` jako środowisko konfiguracyjne
 - 5 koszyków danych `S3` (dane xml, dane wstępne, repozytorium notebooków, repozytorium logów, pliki konfiguracyjne)
 - Klaster `EMR` (1 MASTER, 2 CORE)
-
------
-
-## Dane
-
-zawartość
 
 -----
 
@@ -117,7 +122,7 @@ zawartość
 
 ::: {.column width="50%"}
 
-![](fig-ryc5-output-1.png)
+![Wartość score w porównaniu do długości pytania](fig-ryc5-output-1.png)
 
 :::
 
@@ -187,3 +192,9 @@ zawartość
 |alcohol| 88|
 |differ| 72|
 |bottl| 68|
+
+# Podsumowanie
+
+- Podstawowa infrastruktura - możliwe łatwe i szybkie skalowanie, optymalizacja sposobu przechowywania danych
+
+- Otrzymane wyniki mogą posłużyć do dalszej analizy przyczyn spadającej aktywności na forum
