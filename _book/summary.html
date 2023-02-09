@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl" xml:lang="pl"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Michał Kamiński">
+
+<title>Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark - WNIOSKI I ZAKOŃCZENIE</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./attachments.html" rel="next">
+<link href="./02_analytics.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "Brak wyników",
+    "search-matching-documents-text": "dopasowane dokumenty",
+    "search-copy-link-title": "Kopiuj link do wyszukiwania",
+    "search-hide-matches-text": "Ukryj dodatkowe dopasowania",
+    "search-more-match-text": "więcej dopasowań w tym dokumencie",
+    "search-more-matches-text": "więcej dopasowań w tym dokumencie",
+    "search-clear-button-title": "Wyczyść",
+    "search-detached-cancel-button-title": "Anuluj",
+    "search-submit-button-title": "Zatwierdź"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title">WNIOSKI I ZAKOŃCZENIE</h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</a> 
+    </div>
+      </div>
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WSTĘP</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./results.html" class="sidebar-item-text sidebar-link">WYNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00_schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Schemat infrastruktury rozwiązania</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preprocessing.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Wstępna obróbka danych</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_analytics.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WNIOSKI I ZAKOŃCZENIE</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">ZAŁĄCZNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./attachments.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Budowanie infrastruktury chmurowej</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./functions.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Definicje funkcji</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Repozytorium kodu wykorzystanego w pracy</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Spis treści</h2>
+   
+  <ul>
+  <li><a href="#budowa-infrastruktury" id="toc-budowa-infrastruktury" class="nav-link active" data-scroll-target="#budowa-infrastruktury">Budowa infrastruktury</a></li>
+  <li><a href="#analiza-danych" id="toc-analiza-danych" class="nav-link" data-scroll-target="#analiza-danych">Analiza danych</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block">WNIOSKI I ZAKOŃCZENIE</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor</div>
+    <div class="quarto-title-meta-contents">
+             <p>Michał Kamiński </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="budowa-infrastruktury" class="level2">
+<h2 class="anchored" data-anchor-id="budowa-infrastruktury">Budowa infrastruktury</h2>
+<p>W niniejszej pracy przygotowano podstawowe środowisko pracy do analizy dużych zbiorów danych. Jako środowisko przechowywania danych wykorzystano serwis <code>S3</code> który pozwala na przechowywanie wiele typów oraz formatów danych i jest łatwo skalowalny oraz posiada opcje optymalizacji oraz archiwizacji danych. Do zapisania danych w serwisie <code>S3</code> wykorzystano usługę <code>Cloud9</code>, jednak równie dobrze użytkownik może wykonać opisane w tej pracy kroki na każdej maszynie (również poza chmurą AWS), wystarczy tylko wygenerowanie i użycie odpowiednich kluczy dostępu. <code>Cloud9</code> wydaje się jednak prostszym rozwiązaniem, gdyż zawiera już zainstalowany program <code>AWS CLI</code>, który może być wykorzystany do zapisania danych w serwisie S3.</p>
+<p>Część analityczną zaprojektowano w sposób, aby jak najbardziej uprościć konfigurację by móc skupić się na przeprowadzeniu analizy danych. Wykorzystano popularne narzędzie <code>Apache Spark</code> (głównie moduł <code>SQL</code> z API <code>pySpark</code>) oraz serwis <code>AWS EMR</code> ze środowiskiem graficznym <code>Jupyter Hub</code>, bardzo popularnym wśród programistów/analityków korzystających z języka <code>python</code>. Dodatkowo, zadbano o to żeby efekty pracy (notebooki) oraz logi z klastra były automatycznie zapisywane w osobnych koszykach w serwisie S3.</p>
+<p>W przypadku potrzeby usprawnienia i optymailzacji rozwiązania, możliwa jest dodatkowa konfiguracja obecnej infrastruktury. Jedym z możliwych usprawnień jest reduckja zajmowanego miesjca w usłudze <code>S3</code>. Koszyk danych <code>raw-data-beer-and-wine</code> może posiadać automatyczne usuwanie danych lub archiwizację danych do usługi <code>S3 Glacier</code>, jako że dane w formacie <code>xml</code> po ekstrakcji i zapisaniu ich w formacie <code>parquet</code> są danymi nadmiarowymi.</p>
+<p>Potencjalny schemat tego rozwiązania mógłby składać się z następujących kroków:</p>
+<ol type="1">
+<li>Wykonywanie kodu z sekcji <a href="00_schema.html#sec-extraction"><span>Sekcja&nbsp;1.1</span></a>, mogłoby zostać zautomatyzowane poprzez cykliczne uruchamianie skryptu o danej godzinie np. przy pomocy serwisu <code>AWS Lambda</code> bądź <code>AWS Batch</code></li>
+<li>Po wykonaniu ekstrakcji, uruchamiany byłby kod do wstępnego przetwarzania danych zapisujący dane w formacie <code>parquet</code> opisany w <a href="00_schema.html#sec-prepro"><span>Sekcja&nbsp;1.2</span></a> oraz w szczegółach w <a href="01_preprocessing.html"><span>Rozdział&nbsp;2</span></a></li>
+<li>Dane z koszyka <code>raw-data-beer-and-wine</code> byłyby usuwane np. godzinę po zakończeniu kroku numer 2.</li>
+</ol>
+<p>W przypadku prezentowanego w tej pracy przykładu optymalizacja przechowywania danych nie jest etapem kluczowym, ze względu na stosunkowo mały rozmiar danych, lecz będzie to miało istotne znaczenie w kosztach analizy, gdy rozmiar danych będzie zwiększony.</p>
+<p>Kolejnym ulepszeniem w celu usprawnienienia tworzenias niezbędnej infrastruktury, jest zapisanie jej w postaci projektu typu <code>Infrastructure as a Code</code>. Pozwoliłoby to na śledzenie zmian w projekcie przy pomocy kontroli wersji, a także dodawanie kolejnych komponentów wspomnianych wyżej lub usuwanie komponentów w sposób programatyczny. Można w tym celu wykorzystać programy <code>AWS CDK</code><span class="citation" data-cites="aws_cdk">(<a href="#ref-aws_cdk" role="doc-biblioref"><span>„AWS CDK: Define your cloud application resources using familiar programming languages”</span>, b.d.</a>)</span>, <code>Terraform</code><span class="citation" data-cites="terraform">(<a href="#ref-terraform" role="doc-biblioref"><span>„Automate Infrastructure on Any Cloud”</span>, b.d.</a>)</span> lub bezpośrednio <code>AWS CloudFormation</code><span class="citation" data-cites="aws_cf">(<a href="#ref-aws_cf" role="doc-biblioref"><span>„AWS CloudFormation: Speed up cloud provisioning with infrastructure as code”</span>, b.d.</a>)</span>.</p>
+</section>
+<section id="analiza-danych" class="level2">
+<h2 class="anchored" data-anchor-id="analiza-danych">Analiza danych</h2>
+<p>W części analitycznej pracy zbadano charakterystykę jednego z forów internetowych. W <a href="02_analytics.html#sec-activity"><span>Sekcja&nbsp;3.1</span></a>, <a href="02_analytics.html#sec-dynamics"><span>Sekcja&nbsp;3.2</span></a> oraz <a href="02_analytics.html#sec-retention"><span>Sekcja&nbsp;3.3</span></a> dokonano wstępnych analiz zachowań użytowników na forum, takich jak częstotliwość zadawania pytań, uzyskiwania odpowiedzi czy retencji na forum. Wyniki mogą posłużyć za wstęp do głębszych analiz przez właścicieli forum, w celu poszukiwania metod uatrakcyjnienia dostarczanego produktu, jako że forum z czasem znacząco traci na popularności.</p>
+<p>W kolejnych sekcjach (<a href="02_analytics.html#sec-qstats"><span>Sekcja&nbsp;3.4</span></a>, <a href="02_analytics.html#sec-tags"><span>Sekcja&nbsp;3.5</span></a>, <a href="02_analytics.html#sec-titles"><span>Sekcja&nbsp;3.6</span></a>) dokonano analizy treści oraz jakości zamieszczanych na forum informacji. <a href="02_analytics.html#sec-qstats"><span>Sekcja&nbsp;3.4</span></a> zidentyfikowała najlepiej oraz najgorzej oceniane pytania. Ich dokłądniejsza analiza może posłużyć do zbadania treści tych wiadomości w celu stworzenia instrukcji dla nowych użytkowników o tym, co powinno znaleźć się w treści pytania, aby zwiększyć szanse na uzyskanie odpowiedzi. W <a href="02_analytics.html#sec-tags"><span>Sekcja&nbsp;3.5</span></a> oraz <a href="02_analytics.html#sec-titles"><span>Sekcja&nbsp;3.6</span></a> dokonano wstępnej analizy tematyki zadawanych pytań. Podejście opierało się na wyszukiwaniu najpopularniejszych słów kluczowych wśród znaczników (tagów) oraz tytułów postów. W celu pogłębienia tej analizy można spróbować wykorzystać techinkę <code>tf-idf</code> <span class="citation" data-cites="wikipedia_2020">(<a href="#ref-wikipedia_2020" role="doc-biblioref"><span>„TFIDF”</span> 2020</a>)</span> w celu identyfikacji charakterystycznych słów, biorąc pod uwagę ich występowanie pomiędzy postami. Dodatkowo możliwe jest grupowanie podobnych do siebie postów przy pomocy algorytmu <code>TextRank</code> <span class="citation" data-cites="text_rank">(<a href="#ref-text_rank" role="doc-biblioref">Mihalcea i Tarau, b.d.</a>)</span>. Algorytm ten można wykorzystać w celu oferowania podpowiedzi użytkownikom, którzy zadają pytanie na forum będące duplikatem już istniejącego.</p>
+
+
+<div id="refs" class="references csl-bib-body hanging-indent" role="doc-bibliography">
+<div id="ref-terraform" class="csl-entry" role="doc-biblioentry">
+<span>„Automate Infrastructure on Any Cloud”</span>. b.d. HashiCorp Terraform. <a href="https://www.terraform.io/">https://www.terraform.io/</a>.
+</div>
+<div id="ref-aws_cdk" class="csl-entry" role="doc-biblioentry">
+<span>„AWS CDK: Define your cloud application resources using familiar programming languages”</span>. b.d. Amazon Web Services, Inc. <a href="https://aws.amazon.com/cdk/">https://aws.amazon.com/cdk/</a>.
+</div>
+<div id="ref-aws_cf" class="csl-entry" role="doc-biblioentry">
+<span>„AWS CloudFormation: Speed up cloud provisioning with infrastructure as code”</span>. b.d. Amazon Web Services, Inc. <a href="https://aws.amazon.com/cloudformation/">https://aws.amazon.com/cloudformation/</a>.
+</div>
+<div id="ref-text_rank" class="csl-entry" role="doc-biblioentry">
+Mihalcea, Rada, i Paul Tarau. b.d. <span>„TextRank: Bringing Order into Texts”</span>. <a href="https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf">https://web.eecs.umich.edu/~mihalcea/papers/mihalcea.emnlp04.pdf</a>.
+</div>
+<div id="ref-wikipedia_2020" class="csl-entry" role="doc-biblioentry">
+<span>„TFIDF”</span>. 2020. <em>Wikipedia</em>. Wikimedia Foundation. <a href="https://pl.wikipedia.org/wiki/TFIDF">https://pl.wikipedia.org/wiki/TFIDF</a>.
+</div>
+</div>
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Skopiowano!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Skopiowano!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./02_analytics.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./attachments.html" class="pagination-link">
+        <span class="nav-page-text"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Budowanie infrastruktury chmurowej</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+</body></html>

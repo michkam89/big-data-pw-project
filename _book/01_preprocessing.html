@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl" xml:lang="pl"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Michał Kamiński">
+
+<title>Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark - 2&nbsp; Wstępna obróbka danych</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+    color: #aaaaaa;
+  }
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code span.at { color: #7d9029; } /* Attribute */
+code span.bn { color: #40a070; } /* BaseN */
+code span.bu { color: #008000; } /* BuiltIn */
+code span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code span.ch { color: #4070a0; } /* Char */
+code span.cn { color: #880000; } /* Constant */
+code span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code span.dt { color: #902000; } /* DataType */
+code span.dv { color: #40a070; } /* DecVal */
+code span.er { color: #ff0000; font-weight: bold; } /* Error */
+code span.ex { } /* Extension */
+code span.fl { color: #40a070; } /* Float */
+code span.fu { color: #06287e; } /* Function */
+code span.im { color: #008000; font-weight: bold; } /* Import */
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+code span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code span.op { color: #666666; } /* Operator */
+code span.ot { color: #007020; } /* Other */
+code span.pp { color: #bc7a00; } /* Preprocessor */
+code span.sc { color: #4070a0; } /* SpecialChar */
+code span.ss { color: #bb6688; } /* SpecialString */
+code span.st { color: #4070a0; } /* String */
+code span.va { color: #19177c; } /* Variable */
+code span.vs { color: #4070a0; } /* VerbatimString */
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./02_analytics.html" rel="next">
+<link href="./00_schema.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "Brak wyników",
+    "search-matching-documents-text": "dopasowane dokumenty",
+    "search-copy-link-title": "Kopiuj link do wyszukiwania",
+    "search-hide-matches-text": "Ukryj dodatkowe dopasowania",
+    "search-more-match-text": "więcej dopasowań w tym dokumencie",
+    "search-more-matches-text": "więcej dopasowań w tym dokumencie",
+    "search-clear-button-title": "Wyczyść",
+    "search-detached-cancel-button-title": "Anuluj",
+    "search-submit-button-title": "Zatwierdź"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Wstępna obróbka danych</span></h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</a> 
+    </div>
+      </div>
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WSTĘP</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./results.html" class="sidebar-item-text sidebar-link">WYNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00_schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Schemat infrastruktury rozwiązania</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preprocessing.html" class="sidebar-item-text sidebar-link active"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Wstępna obróbka danych</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_analytics.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WNIOSKI I ZAKOŃCZENIE</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">ZAŁĄCZNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./attachments.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Budowanie infrastruktury chmurowej</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./functions.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Definicje funkcji</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Repozytorium kodu wykorzystanego w pracy</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Spis treści</h2>
+   
+  <ul>
+  <li><a href="#konfiguracja-aplikacji-spark" id="toc-konfiguracja-aplikacji-spark" class="nav-link active" data-scroll-target="#konfiguracja-aplikacji-spark"><span class="toc-section-number">2.1</span>  Konfiguracja aplikacji Spark</a></li>
+  <li><a href="#sec-schemas" id="toc-sec-schemas" class="nav-link" data-scroll-target="#sec-schemas"><span class="toc-section-number">2.2</span>  Schematy danych</a>
+  <ul class="collapse">
+  <li><a href="#plik-users" id="toc-plik-users" class="nav-link" data-scroll-target="#plik-users"><span class="toc-section-number">2.2.1</span>  Plik <code>Users</code></a></li>
+  <li><a href="#plik-tags" id="toc-plik-tags" class="nav-link" data-scroll-target="#plik-tags"><span class="toc-section-number">2.2.2</span>  Plik <code>Tags</code></a></li>
+  <li><a href="#plik-votes" id="toc-plik-votes" class="nav-link" data-scroll-target="#plik-votes"><span class="toc-section-number">2.2.3</span>  Plik <code>Votes</code></a></li>
+  <li><a href="#plik-posts" id="toc-plik-posts" class="nav-link" data-scroll-target="#plik-posts"><span class="toc-section-number">2.2.4</span>  Plik <code>Posts</code></a></li>
+  <li><a href="#plik-post-links" id="toc-plik-post-links" class="nav-link" data-scroll-target="#plik-post-links"><span class="toc-section-number">2.2.5</span>  Plik <code>Post Links</code></a></li>
+  <li><a href="#plik-post-history" id="toc-plik-post-history" class="nav-link" data-scroll-target="#plik-post-history"><span class="toc-section-number">2.2.6</span>  Plik <code>Post History</code></a></li>
+  <li><a href="#plik-badges" id="toc-plik-badges" class="nav-link" data-scroll-target="#plik-badges"><span class="toc-section-number">2.2.7</span>  Plik <code>Badges</code></a></li>
+  </ul></li>
+  <li><a href="#sec-text-cleanup" id="toc-sec-text-cleanup" class="nav-link" data-scroll-target="#sec-text-cleanup"><span class="toc-section-number">2.3</span>  Czyszczenie kolumn tekstowych</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-prepro-chapter" class="quarto-section-identifier d-none d-lg-block"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Wstępna obróbka danych</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor</div>
+    <div class="quarto-title-meta-contents">
+             <p>Michał Kamiński </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="konfiguracja-aplikacji-spark" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="konfiguracja-aplikacji-spark"><span class="header-section-number">2.1</span> Konfiguracja aplikacji Spark</h2>
+<p>W celu przygotowania danych do analizy zostały one wstępnie przetworzone. Pierwszym etapem wstępnego przetwarzania jest wczytanie danych do środowiska analitycznego. Dane surowe, przechowywane w koszyku <code>raw-data-beer-and-wine</code> znajowały się w mało przyjaznym dla analiz formacie <code>xml</code>. Wczytanie tego typu danych wymagało załadowania dodatkowego pakietu <code>jar</code> o nazwie <code>spark-xml_2.12:0.15.0</code> pobranego z repozytorium <code>maven</code>.</p>
+<p>W serwisie <code>EMR</code> można dodać tego typu pakiety wykorzystując specjalne polecenia typy <code>Sparkmagic</code> rozpoczynające się od znaków <code>%%</code>. W tym przypadku użyto <code>%%configure</code>:</p>
+<div class="cell" data-execution_count="3">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">%%</span>configure <span class="op">-</span>f</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>{</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"conf"</span>: {</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">"spark.jars.packages"</span>: <span class="st">"com.databricks:spark-xml_2.12:0.15.0"</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>}</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+</section>
+<section id="sec-schemas" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="sec-schemas"><span class="header-section-number">2.2</span> Schematy danych</h2>
+<p>W celu zapewnienia wczytania danych o oczekiwanych typach oraz zapewnieniu że nie ma tam danych brakujących utworzono schematy danych, wykorzystywane w kroku wczytywania z plików <code>xml</code>. Poniżej przedstawiono schematy dla każdego z przetwarzanych plików oraz przykładowe wiersze.</p>
+<section id="plik-users" class="level3" data-number="2.2.1">
+<h3 data-number="2.2.1" class="anchored" data-anchor-id="plik-users"><span class="header-section-number">2.2.1</span> Plik <code>Users</code></h3>
+<div class="cell" data-execution_count="6">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>users_schema <span class="op">=</span> StructType([</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_AboutMe'</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_AccountId'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_CreationDate'</span>, TimestampType(), <span class="va">True</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_DisplayName"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_DownVotes"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Id"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_LastAccessDate"</span>, TimestampType()),</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Location"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_ProfileImageUrl"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Reputation"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_UpVotes"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Views"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_WebsiteUrl"</span>, StringType(), <span class="va">True</span>)</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="7">
+<div class="cell-output cell-output-stdout">
+<pre><code>-RECORD 0------------------------------------------------------------------------
+ _AboutMe         | &lt;p&gt;Hi, I'm not really a person.&lt;/p&gt;\n\n&lt;p&gt;I'm a backgroun... 
+ _AccountId       | -1                                                           
+ _CreationDate    | 2014-01-21 17:45:53.587                                      
+ _DisplayName     | Community                                                    
+ _DownVotes       | 478                                                          
+ _Id              | -1                                                           
+ _LastAccessDate  | 2014-01-21 17:45:53.587                                      
+ _Location        | on the server farm                                           
+ _ProfileImageUrl | null                                                         
+ _Reputation      | 1                                                            
+ _UpVotes         | 2                                                            
+ _Views           | 5                                                            
+ _WebsiteUrl      | http://meta.stackexchange.com/                               
+only showing top 1 row
+</code></pre>
+</div>
+</div>
+</section>
+<section id="plik-tags" class="level3" data-number="2.2.2">
+<h3 data-number="2.2.2" class="anchored" data-anchor-id="plik-tags"><span class="header-section-number">2.2.2</span> Plik <code>Tags</code></h3>
+<div class="cell" data-execution_count="8">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>tags_schema <span class="op">=</span> StructType([</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_Count'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_ExcerptPostId'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_Id'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_TagName"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_WikiPostId"</span>, IntegerType(), <span class="va">True</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="9">
+<div class="cell-output cell-output-stdout">
+<pre><code>+------+--------------+---+-----------+-----------+
+|_Count|_ExcerptPostId|_Id|   _TagName|_WikiPostId|
++------+--------------+---+-----------+-----------+
+|    17|          5062|  1|       hops|       5061|
+|    85|          7872|  2|    history|       7871|
+|    69|          4880|  4|    brewing|       4879|
+|    37|          5109|  5|    serving|       5108|
+|    31|           304|  6|temperature|        303|
++------+--------------+---+-----------+-----------+
+only showing top 5 rows
+</code></pre>
+</div>
+</div>
+</section>
+<section id="plik-votes" class="level3" data-number="2.2.3">
+<h3 data-number="2.2.3" class="anchored" data-anchor-id="plik-votes"><span class="header-section-number">2.2.3</span> Plik <code>Votes</code></h3>
+<div class="cell" data-execution_count="10">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>votes_schema <span class="op">=</span> StructType([</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_BountyAmount'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_CreationDate'</span>, TimestampType(), <span class="va">True</span>),</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_Id'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_PostId"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_UserId"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_VoteTypeId"</span>, IntegerType(), <span class="va">True</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="11">
+<div class="cell-output cell-output-stdout">
+<pre><code>+-------------+-------------------+---+-------+-------+-----------+
+|_BountyAmount|      _CreationDate|_Id|_PostId|_UserId|_VoteTypeId|
++-------------+-------------------+---+-------+-------+-----------+
+|         null|2014-01-21 00:00:00|  1|      1|   null|          2|
+|         null|2014-01-21 00:00:00|  2|      1|   null|          2|
+|         null|2014-01-21 00:00:00|  3|      4|   null|          2|
+|         null|2014-01-21 00:00:00|  4|      1|   null|          2|
+|         null|2014-01-21 00:00:00|  5|      4|   null|          2|
++-------------+-------------------+---+-------+-------+-----------+
+only showing top 5 rows
+</code></pre>
+</div>
+</div>
+</section>
+<section id="plik-posts" class="level3" data-number="2.2.4">
+<h3 data-number="2.2.4" class="anchored" data-anchor-id="plik-posts"><span class="header-section-number">2.2.4</span> Plik <code>Posts</code></h3>
+<div class="cell" data-execution_count="12">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>posts_schema <span class="op">=</span> StructType([</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_AcceptedAnswerId'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_AnswerCount'</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">'_Body'</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_ClosedDate"</span>, TimestampType(), <span class="va">True</span>),</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_CommentCount"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_CommunityOwnedDate"</span>, TimestampType(), <span class="va">True</span>),</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_ContentLicense"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_CreationDate"</span>, TimestampType(), <span class="va">True</span>),</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_FavoriteCount"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Id"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_LastActivityDate"</span>, TimestampType(), <span class="va">True</span>),</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_LastEditDate"</span>, TimestampType(), <span class="va">True</span>),</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_LastEditorDisplayName"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_LastEditorUserId"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_OwnerDisplayName"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_OwnerUserId"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_ParentId"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_PostTypeId"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Score"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Tags"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Title"</span>, StringType(), <span class="va">True</span>),</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_ViewCount"</span>, IntegerType(), <span class="va">True</span>),</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="13">
+<div class="cell-output cell-output-stdout">
+<pre><code>-RECORD 0------------------------------------------------------------------------------
+ _AcceptedAnswerId      | 4                                                            
+ _AnswerCount           | 1                                                            
+ _Body                  | &lt;p&gt;I was offered a beer the other day that was reportedly... 
+ _ClosedDate            | null                                                         
+ _CommentCount          | 0                                                            
+ _CommunityOwnedDate    | null                                                         
+ _ContentLicense        | CC BY-SA 3.0                                                 
+ _CreationDate          | 2014-01-21 20:26:05.383                                      
+ _FavoriteCount         | null                                                         
+ _Id                    | 1                                                            
+ _LastActivityDate      | 2014-01-21 22:04:34.977                                      
+ _LastEditDate          | 2014-01-21 22:04:34.977                                      
+ _LastEditorDisplayName | null                                                         
+ _LastEditorUserId      | 8                                                            
+ _OwnerDisplayName      | null                                                         
+ _OwnerUserId           | 7                                                            
+ _ParentId              | null                                                         
+ _PostTypeId            | 1                                                            
+ _Score                 | 21                                                           
+ _Tags                  | &lt;hops&gt;                                                       
+ _Title                 | What is a citra hop, and how does it differ from other hops? 
+ _ViewCount             | 2434                                                         
+only showing top 1 row
+</code></pre>
+</div>
+</div>
+</section>
+<section id="plik-post-links" class="level3" data-number="2.2.5">
+<h3 data-number="2.2.5" class="anchored" data-anchor-id="plik-post-links"><span class="header-section-number">2.2.5</span> Plik <code>Post Links</code></h3>
+<div class="cell" data-execution_count="14">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>links_schema <span class="op">=</span> StructType([</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_CreationDate"</span>, TimestampType()),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Id"</span>, IntegerType()),</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_LinkTypeId"</span>, IntegerType()),</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_PostId"</span>, IntegerType()),</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_RelatedPostId"</span>, IntegerType())</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="15">
+<div class="cell-output cell-output-stdout">
+<pre><code>+-----------------------+---+-----------+-------+--------------+
+|_CreationDate          |_Id|_LinkTypeId|_PostId|_RelatedPostId|
++-----------------------+---+-----------+-------+--------------+
+|2014-01-21 21:04:25.23 |25 |3          |29     |25            |
+|2014-01-21 21:42:09.103|89 |1          |83     |50            |
+|2014-01-21 21:50:41.313|95 |1          |86     |2             |
+|2014-01-21 22:07:35.783|101|3          |47     |99            |
+|2014-01-21 22:13:51.38 |102|1          |74     |3             |
++-----------------------+---+-----------+-------+--------------+
+only showing top 5 rows
+</code></pre>
+</div>
+</div>
+</section>
+<section id="plik-post-history" class="level3" data-number="2.2.6">
+<h3 data-number="2.2.6" class="anchored" data-anchor-id="plik-post-history"><span class="header-section-number">2.2.6</span> Plik <code>Post History</code></h3>
+<div class="cell" data-execution_count="16">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>history_schema <span class="op">=</span> StructType([</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Comment"</span>, StringType()),</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_ContentLicense"</span>, StringType()),</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_CreationDate"</span>, TimestampType()),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Id"</span>, IntegerType()),</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_PostHistoryTypeId"</span>, IntegerType()),</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_PostId"</span>, IntegerType()),</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_RevisionGUID"</span>, StringType()),</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Text"</span>, StringType()),</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_UserDisplayName"</span>, StringType()),</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_UserId"</span>, IntegerType()),</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="17">
+<div class="cell-output cell-output-stdout">
+<pre><code>-RECORD 0--------------------------------------------------------------------------
+ _Comment           | null                                                         
+ _ContentLicense    | CC BY-SA 3.0                                                 
+ _CreationDate      | 2014-01-21 20:26:05.383                                      
+ _Id                | 1                                                            
+ _PostHistoryTypeId | 2                                                            
+ _PostId            | 1                                                            
+ _RevisionGUID      | a17002a0-00b0-417b-a404-0d8864bbbca5                         
+ _Text              | I was offered a beer the other day that was reportedly ma... 
+ _UserDisplayName   | null                                                         
+ _UserId            | 7                                                            
+only showing top 1 row
+</code></pre>
+</div>
+</div>
+</section>
+<section id="plik-badges" class="level3" data-number="2.2.7">
+<h3 data-number="2.2.7" class="anchored" data-anchor-id="plik-badges"><span class="header-section-number">2.2.7</span> Plik <code>Badges</code></h3>
+<div class="cell" data-execution_count="18">
+<details>
+<summary>Kod</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>badges_schema <span class="op">=</span> StructType([</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Class"</span>, IntegerType()),</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Date"</span>, TimestampType()),</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Id"</span>, IntegerType()),</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_Name"</span>, StringType()),</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_TagBased"</span>, BooleanType()),</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    StructField(<span class="st">"_UserId"</span>, IntegerType()),</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>])</span></code><button title="Kopiuj do schowka" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+</div>
+<div class="cell" data-execution_count="19">
+<div class="cell-output cell-output-stdout">
+<pre><code>+------+----------------------+---+--------------+---------+-------+
+|_Class|_Date                 |_Id|_Name         |_TagBased|_UserId|
++------+----------------------+---+--------------+---------+-------+
+|3     |2014-01-21 20:52:16.97|1  |Autobiographer|false    |1      |
+|3     |2014-01-21 20:52:16.97|2  |Autobiographer|false    |2      |
+|3     |2014-01-21 20:52:16.97|3  |Autobiographer|false    |6      |
+|3     |2014-01-21 20:52:16.97|4  |Autobiographer|false    |7      |
+|3     |2014-01-21 20:52:16.97|5  |Autobiographer|false    |9      |
++------+----------------------+---+--------------+---------+-------+
+only showing top 5 rows
+</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="sec-text-cleanup" class="level2" data-number="2.3">
+<h2 data-number="2.3" class="anchored" data-anchor-id="sec-text-cleanup"><span class="header-section-number">2.3</span> Czyszczenie kolumn tekstowych</h2>
+<p>Pliki <code>Users</code>, <code>History</code> oraz <code>Posts</code> zawierają koumny tekstowe z danymi wpisywanymi przez użytkowników oraz często zawierające znaki specjalne czy tagi html. W związku z tym kolumny <code>_AboutMe</code> (plik <code>Users</code>), <code>_Text</code> (plik <code>History</code>) oraz <code>_Body</code> (plik <code>Posts</code>) zostały poddane procesowi oczyszczania.</p>
+<p>W tym celu utworzono funkcję <code>UDF</code> o nazwie <code>tags_remove()</code> <a href="functions.html#sec-tags-remove"><span>Sekcja&nbsp;B.1</span></a>, która odpowiada za usunięcie tagów html.</p>
+<p>Dodatkowo znaki <code>\n</code>, <code>\t</code>, <code>\r</code> oraz podwójne spacje zastąpiono pojedynczymi znakami spacji a także usunięto znaki spacji z początków i końców wartości tekstowych.</p>
+<p>Poniżej zaprezentowano przykłady kolumn nieoczyszczonych oraz po ich oczyszczeniu (zawierające końcówkę <code>_clean</code>):</p>
+<ul>
+<li>Dla pliku <code>Users</code>: </li>
+</ul>
+<div class="cell" data-execution_count="22">
+<div class="cell-output cell-output-stdout">
+<pre><code>-RECORD 0----------------------------------------------------------------------
+ _AboutMe       | &lt;p&gt;Hi, I'm not really a person.&lt;/p&gt;\n\n&lt;p&gt;I'm a backgroun... 
+ _AboutMe_clean | Hi, I'm not really a person. I'm a background process tha... 
+-RECORD 1----------------------------------------------------------------------
+ _AboutMe       | &lt;p&gt;Dev #2 who helped create Stack Overflow currently work... 
+ _AboutMe_clean | Dev #2 who helped create Stack Overflow currently working... 
+-RECORD 2----------------------------------------------------------------------
+ _AboutMe       | &lt;p&gt;Former Stack Exchange employee&lt;/p&gt;\n                      
+ _AboutMe_clean | Former Stack Exchange employee                               
+-RECORD 3----------------------------------------------------------------------
+ _AboutMe       | \n&lt;p&gt;Developer at Stack Overflow focusing on public Q&amp;amp... 
+ _AboutMe_clean | Developer at Stack Overflow focusing on public Q&amp;A. Russi... 
+-RECORD 4----------------------------------------------------------------------
+ _AboutMe       | &lt;p&gt;&lt;strong&gt;BY DAY:&lt;/strong&gt; I execute projects on both mo... 
+ _AboutMe_clean | BY DAY: I execute projects on both mobile and on the web ... 
+only showing top 5 rows
+</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>[Stage 7:&gt;                                                          (0 + 1) / 1]                                                                                </code></pre>
+</div>
+</div>
+<ul>
+<li>Dla pliku <code>History</code>: </li>
+</ul>
+<div class="cell" data-execution_count="23">
+<div class="cell-output cell-output-stdout">
+<pre><code>-RECORD 0-------------------------------------------------------------------
+ _Text       | I was offered a beer the other day that was reportedly ma... 
+ _Text_clean | I was offered a beer the other day that was reportedly ma... 
+-RECORD 1-------------------------------------------------------------------
+ _Text       | What is a citra hop, and how does it differ from other hops? 
+ _Text_clean | What is a citra hop, and how does it differ from other hops? 
+-RECORD 2-------------------------------------------------------------------
+ _Text       | &lt;hops&gt;                                                       
+ _Text_clean |                                                              
+-RECORD 3-------------------------------------------------------------------
+ _Text       | As far as we know, when did humans first brew beer, and w... 
+ _Text_clean | As far as we know, when did humans first brew beer, and w... 
+-RECORD 4-------------------------------------------------------------------
+ _Text       | When was the first beer ever brewed?                         
+ _Text_clean | When was the first beer ever brewed?                         
+only showing top 5 rows
+</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>/config/workspace/env/lib/python3.10/site-packages/bs4/__init__.py:435: MarkupResemblesLocatorWarning: The input looks more like a filename than markup. You may want to open this file and pass the filehandle into Beautiful Soup.
+  warnings.warn(</code></pre>
+</div>
+</div>
+<ul>
+<li>Dla pliku <code>Posts</code>: </li>
+</ul>
+<div class="cell" data-execution_count="24">
+<div class="cell-output cell-output-stdout">
+<pre><code>-RECORD 0-------------------------------------------------------------------
+ _Body       | &lt;p&gt;I was offered a beer the other day that was reportedly... 
+ _Body_clean | I was offered a beer the other day that was reportedly ma... 
+-RECORD 1-------------------------------------------------------------------
+ _Body       | &lt;p&gt;As far as we know, when did humans first brew beer, an... 
+ _Body_clean | As far as we know, when did humans first brew beer, and w... 
+-RECORD 2-------------------------------------------------------------------
+ _Body       | &lt;p&gt;How is low/no alcohol beer made? I'm assuming that the... 
+ _Body_clean | How is low/no alcohol beer made? I'm assuming that the be... 
+-RECORD 3-------------------------------------------------------------------
+ _Body       | &lt;p&gt;Citra is a registered trademark since 2007. Citra Bran... 
+ _Body_clean | Citra is a registered trademark since 2007. Citra Brand h... 
+-RECORD 4-------------------------------------------------------------------
+ _Body       | &lt;p&gt;In general, what's the best way to work out the temper... 
+ _Body_clean | In general, what's the best way to work out the temperatu... 
+only showing top 5 rows
+</code></pre>
+</div>
+</div>
+<p>Tak przygotowane dane, w celu optymalizacji miejsca zajmowanego w koszyku S3, oraz w celu przyspieszenia procesu wczytywania danych zapisano w formacie <code>parquet</code>. Zaskutkowało to redukcją zajmowanego miejsca w koszuku o około 50%. </p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Skopiowano!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Skopiowano!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./00_schema.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Schemat infrastruktury rozwiązania</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./02_analytics.html" class="pagination-link">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+</body></html>

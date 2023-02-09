@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="pl" xml:lang="pl"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.2.313">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Michał Kamiński">
+
+<title>Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark - 3&nbsp; Analiza danych</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1.6em;
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./summary.html" rel="next">
+<link href="./01_preprocessing.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 20,
+  "language": {
+    "search-no-results-text": "Brak wyników",
+    "search-matching-documents-text": "dopasowane dokumenty",
+    "search-copy-link-title": "Kopiuj link do wyszukiwania",
+    "search-hide-matches-text": "Ukryj dodatkowe dopasowania",
+    "search-more-match-text": "więcej dopasowań w tym dokumencie",
+    "search-more-matches-text": "więcej dopasowań w tym dokumencie",
+    "search-clear-button-title": "Wyczyść",
+    "search-detached-cancel-button-title": "Anuluj",
+    "search-submit-button-title": "Zatwierdź"
+  }
+}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" integrity="sha512-c3Nl8+7g4LMSTdrm621y7kf9v3SDPnhxLNhcjFJbKECVnmZHTdo+IRO05sNLTH/D3vA6u1X32ehoLC7WFVdheg==" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js" integrity="sha512-bLT0Qm9VnAYZDflyKcBaQ2gg0hSYNQrJ8RilYldYQ1FxQYoCLtUjuuRuZo+fjqhx/qtq/1itJ0C2ejDxltZVFg==" crossorigin="anonymous"></script>
+<script type="application/javascript">define('jquery', [],function() {return window.jQuery;})</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+    <div class="container-fluid d-flex justify-content-between">
+      <h1 class="quarto-secondary-nav-title"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></h1>
+      <button type="button" class="quarto-btn-toggle btn" aria-label="Show secondary navigation">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Wieloskalowa analiza danych z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark</a> 
+    </div>
+      </div>
+      <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+      </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WSTĘP</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a href="./results.html" class="sidebar-item-text sidebar-link">WYNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./00_schema.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Schemat infrastruktury rozwiązania</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./01_preprocessing.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Wstępna obróbka danych</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02_analytics.html" class="sidebar-item-text sidebar-link active"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <span class="sidebar-item-text sidebar-link text-start">WNIOSKI I ZAKOŃCZENIE</span>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">ZAŁĄCZNIKI</a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-4" aria-expanded="true">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-4" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./attachments.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">A</span>&nbsp; <span class="chapter-title">Budowanie infrastruktury chmurowej</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./functions.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">B</span>&nbsp; <span class="chapter-title">Definicje funkcji</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./other.html" class="sidebar-item-text sidebar-link"><span class="chapter-number">C</span>&nbsp; <span class="chapter-title">Repozytorium kodu wykorzystanego w pracy</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+    </ul>
+    </div>
+</nav>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Spis treści</h2>
+   
+  <ul>
+  <li><a href="#sec-activity" id="toc-sec-activity" class="nav-link active" data-scroll-target="#sec-activity"><span class="toc-section-number">3.1</span>  Analiza aktywności użytkowników na forum</a></li>
+  <li><a href="#sec-dynamics" id="toc-sec-dynamics" class="nav-link" data-scroll-target="#sec-dynamics"><span class="toc-section-number">3.2</span>  Dynamika oraz statystyki udzielanych odpowiedzi</a></li>
+  <li><a href="#sec-retention" id="toc-sec-retention" class="nav-link" data-scroll-target="#sec-retention"><span class="toc-section-number">3.3</span>  Retencja użytkowników</a></li>
+  <li><a href="#sec-qstats" id="toc-sec-qstats" class="nav-link" data-scroll-target="#sec-qstats"><span class="toc-section-number">3.4</span>  Statystyki najwyżej oraz najniżej ocenianych pytań</a></li>
+  <li><a href="#sec-tags" id="toc-sec-tags" class="nav-link" data-scroll-target="#sec-tags"><span class="toc-section-number">3.5</span>  Analiza znaczników (tagów)</a></li>
+  <li><a href="#sec-titles" id="toc-sec-titles" class="nav-link" data-scroll-target="#sec-titles"><span class="toc-section-number">3.6</span>  Analiza tytułów postów</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title d-none d-lg-block"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Analiza danych</span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Autor</div>
+    <div class="quarto-title-meta-contents">
+             <p>Michał Kamiński </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="sec-activity" class="level2" data-number="3.1">
+<h2 data-number="3.1" class="anchored" data-anchor-id="sec-activity"><span class="header-section-number">3.1</span> Analiza aktywności użytkowników na forum</h2>
+<p>Jako pierwsze postanowiono zbadać czy forum jest aktywne. W tym celu liczbę postów zagregowano w miesięczne insterwały i zliczono ich ilość. Pierwsza wiadomość pojawiła się na forum 2014-01-21 natomiast ostatnia 2022-06-05. Na przestrzeni tych ~8,5 roku pojawiło się 3769 postów. Z <a href="#fig-ryc2">Rys.&nbsp;<span>3.1</span></a> widać, że zainteresowanie forum spadało w czasie. W rekordowych pierwszych 2 miesiącach umieszczano ich odpowiednio 413 oraz 190, natomiast pod koniec badanego okresu wartości często nie przekraczały 10.</p>
+<div class="cell" data-execution_count="5">
+<div class="cell-output cell-output-display" data-execution_count="5">
+<div id="fig-ryc2" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc2-output-1.png" width="1136" height="496" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.1: Liczba postow w czasie z podzialem na pytania i odpowiedzi. Lewy panel wskazuje surowe wartości liczby postów, prawy wartości logarytmiczne o podstawie 10. Zamieszczono również linię trendu obliczoną przy użyciu algorytmu LOESS (ang. <em>Local Polynomial Regression Fitting</em>)</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Stosunek ilości odpowiedzi do zadawanych pytań (rato) rósł do roku 2021, w którym to zaczęto odnotowywać spadek. Na wzrost ratio miała wpływ zmniejszająca się ilość zadawanych pytań (maleje próba badana) co zostało przedstawione na <a href="#fig-ryc3">Rys.&nbsp;<span>3.2</span></a>. Patrząc na wartości średnie tylko co drugie pytanie uzyskiwało odpowiedź (ratio 0.48 +/- 0.22). Ogólne statystyki stosunku pytań do dopowiedzi w czasie zostały przedstawione w <a href="#tbl-ratios">Tab.&nbsp;<span>3.1</span></a>.</p>
+<div class="cell" data-execution_count="7">
+<div class="cell-output cell-output-display" data-execution_count="7">
+<div id="fig-ryc3" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc3-output-1.png" width="1125" height="597" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.2: Stosunek ilości odpowiedzi na zadane pytania w czasie, uwzględniając ilość zadanych pytań</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="8">
+<div class="cell-output cell-output-display" data-execution_count="8">
+<div id="tbl-ratios" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.1:  Statystyki stosunku ilości odpowiedzi na pytania. Bez uwzględnienia czy było ono zaakceptowane czy też nie. </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>min</th>
+      <th>max</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>0.476316</td>
+      <td>0.219824</td>
+      <td>0.0</td>
+      <td>1.5</td>
+      <td>0.444444</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-dynamics" class="level2" data-number="3.2">
+<h2 data-number="3.2" class="anchored" data-anchor-id="sec-dynamics"><span class="header-section-number">3.2</span> Dynamika oraz statystyki udzielanych odpowiedzi</h2>
+<p>Twórcy pytań na forum mają możliwość wybrania odpowiedzi, która jest najtrafniejsza i zawiera poprawną odpowiedź. Te odpowiedzi nazywane są zaakceptowanymi odpowiedziami. Zbadano jak często najwyżej oceniona odpowiedź nie była zaakceptowaną odpowiedzią.</p>
+<p>Okazało się, że w przypadku pytań, które posiadały jakąkolwiek odpowiedź, około 12.7% (646) przypadków najlepiej ocenianych odpowiedzi nie było tą, która została zaakceptowana przez autora.</p>
+<p>Następnie porównano oceny odpowiedzi zaakceptowanych z pozostałymi odpowiedziami a statystyki przedstawiono w <a href="#tbl-a_stats">Tab.&nbsp;<span>3.2</span></a> oraz <a href="#fig-ryc9">Rys.&nbsp;<span>3.3</span></a>.</p>
+<p>Pośród odpowiedzi na zadawane pytania wyróżniono 3 kategorie:</p>
+<ol type="1">
+<li>odpowiedź zaakceptowana (<code>is_accepted=True</code>)</li>
+<li>odpowiedź niezaakceptowana (<code>is_accepted=False</code>)</li>
+<li>odpowiedź niezaakceptowana ale równocześnie brak jest zaakceptowanej odpowiedzi na to pytanie (<code>is_accepted=None</code>)</li>
+</ol>
+<p>Z analizy wynika, iż zaakceptowane odpowiedzi mają średnio wyższe oceny użytkowników (6,39) niż pozostałe oceny (2.75 - <code>is_accepted=None</code>; 2.58 - <code>is_accepted=False</code>), co było oczekiwanym wynikiem.</p>
+<p>Następnie zbadano jak szybko od pojawienia się pytania, pojawia się zaakceptowana odpowiedź. Dla wszystkich pytań na tym forum jest to średnio 25244 minuty, ale wartość środkowa (753) sugeruje, że średnia może być zaburzona. W celu obliczenia średniej nie zaburzonej tak dużymi wartościami odstającymi odrzucono wartości znajdujące powyżej 6 odchyleń standardowych od średniej (75894 minut). Tym razem uzyskano wartość 3988 minut (~66,5 godziny), przy wartości środkowej 628 (~10,5 godziny).</p>
+<p>Rozkłady wartości przedstawiono na <a href="#fig-ryc10">Rys.&nbsp;<span>3.4</span></a> oraz w <a href="#tbl-time_stats">Tab.&nbsp;<span>3.3</span></a> dla całego zbioru danych oraz <a href="#tbl-time_stats_no_outliers">Tab.&nbsp;<span>3.4</span></a> po odrzuceniu wartości odstających.</p>
+<div class="cell" data-execution_count="11">
+<div class="cell-output cell-output-display" data-execution_count="11">
+<div id="tbl-a_stats" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.2:  Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>is_accepted</th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>min</th>
+      <th>max</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>None</td>
+      <td>2.755169</td>
+      <td>3.181837</td>
+      <td>-5</td>
+      <td>30</td>
+      <td>2</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>True</td>
+      <td>6.395044</td>
+      <td>5.915949</td>
+      <td>0</td>
+      <td>46</td>
+      <td>5</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>False</td>
+      <td>2.584169</td>
+      <td>2.735329</td>
+      <td>-4</td>
+      <td>26</td>
+      <td>2</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="13">
+<div class="cell-output cell-output-display" data-execution_count="13">
+<div id="fig-ryc9" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc9-output-1.png" width="1040" height="348" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.3: Rozkład ocen pytań zaakceptowanych w porównaniu do pozostałych</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="15">
+<div class="cell-output cell-output-display" data-execution_count="15">
+<div id="fig-ryc10" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc10-output-1.png" width="1183" height="349" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.4: Rozkład czasu od pojawienia się pytania do zaakceptowanej odpowiedzi w minutach</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="16">
+<div class="cell-output cell-output-display" data-execution_count="16">
+<div id="tbl-time_stats" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.3:  Statystyki czasu od pojawienia się pytania do zaakceptowanej odpowiedzi w minutach </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>min</th>
+      <th>max</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>25244.943571</td>
+      <td>123338.63251</td>
+      <td>0.0</td>
+      <td>1506239.05</td>
+      <td>753.25</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="17">
+<div class="cell-output cell-output-display" data-execution_count="17">
+<div id="tbl-time_stats_no_outliers" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.4:  Statystyki ocen odpowiedzi zaakceptowanych w stosunku do pozostałych po odrzuceniu wartości odstających (&gt; 6*SD) </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>min</th>
+      <th>max</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>3988.821096</td>
+      <td>9775.983836</td>
+      <td>0.0</td>
+      <td>73465.9</td>
+      <td>628.72</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-retention" class="level2" data-number="3.3">
+<h2 data-number="3.3" class="anchored" data-anchor-id="sec-retention"><span class="header-section-number">3.3</span> Retencja użytkowników</h2>
+<p>W całej historii forum zarejestrowanych zostało 8948 użytkowników, z czego jedno konto jest kontem bota. Miarą retencji użytkownika na forum określono czas od utworzenia konta to ostaniej zamieszczonej wiadomości. Wśród 50 najdłużej aktywnych kont zidentyfikowano konto z wynikiem aż 3052 dni a konto z ostatnim indeksem w tej grupie miało wynik 2128 dni. Jednakże patrząc na całą populację, wartość środkowa wyniosła 11, a 50% wartości mieści się pomiędzy 0 a 594 dniami. Użytkownicy z wartością 0, są to najprawdopodobniej użytkowicy, którzy zadali jedyne pytanie na forum w dniu założenia konta (410 użytkowników). Czas na forum najdłużej aktywnych użytkowników został zwizualizowany na <a href="#fig-ryc4">Rys.&nbsp;<span>3.5</span></a>. Dodatkowo okazało się, że 7691 (86%) kont było biernymi użytkownikami forum i nidgy nie dodało żadnego posta.</p>
+<div class="cell" data-execution_count="19">
+<div class="cell-output cell-output-display" data-execution_count="19">
+<div id="fig-ryc4" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc4-output-1.png" width="1039" height="559" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.5: Czas na forum 50 najdłużej aktywnych kont</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-qstats" class="level2" data-number="3.4">
+<h2 data-number="3.4" class="anchored" data-anchor-id="sec-qstats"><span class="header-section-number">3.4</span> Statystyki najwyżej oraz najniżej ocenianych pytań</h2>
+<p>Zbadano statystyki zadawanych pytań. Użytkownicy forum mogą oceniać pojawiające się tam pytania czego miarą jest wartość <code>score</code>. Sprawdzono, czy długość zadanego pytania ma wpływ na jego ocenę.</p>
+<p>Średnia długość pytania wyniosła 415 znaków (+/- 330) a wartość środkowa 331 znaków. Najdłuższe pytanie posiadało 3133 znaki a najkrótsze jedynie 30. Statystyki przedstawiono w <a href="#tbl-q_stats">Tab.&nbsp;<span>3.5</span></a>.</p>
+<div class="cell" data-execution_count="22">
+<div class="cell-output cell-output-display" data-execution_count="22">
+<div id="tbl-q_stats" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.5:  Statystyki długości postów (liczba znaków) </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>max</th>
+      <th>min</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>415.863676</td>
+      <td>330.836043</td>
+      <td>3133</td>
+      <td>30</td>
+      <td>331</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<p>Średnio pytanie było oceniane na wartość 6.28 (+/-5.88) a wartość środkowa wyniosła 5. Najlepiej oceniane pytanie miało ocenę 67 a najgorzej -7. Statystyki zestawiono w <a href="#tbl-score_stats">Tab.&nbsp;<span>3.6</span></a>.</p>
+<div class="cell" data-execution_count="23">
+<div class="cell-output cell-output-display" data-execution_count="23">
+<div id="tbl-score_stats" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.6:  Statystyki ocen użytkowników </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>max</th>
+      <th>min</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>6.278804</td>
+      <td>5.876114</td>
+      <td>68</td>
+      <td>-7</td>
+      <td>5</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<p>Zależność pomiędzy wartością <code>score</code> a długością wiadomości przedstawiono na <a href="#fig-ryc5">Rys.&nbsp;<span>3.6</span></a>. Ze względu na obecność dużej ilości wartości odstających obie wartości przedstawiono również w skali logarymicznej.</p>
+<p>Nie wykryto korelacji pomiędzy tymi dwoma zmiennymi. Współczynnik korelacji wyniósł -0.048 oraz -0.018 dla wartości zlogarytmowanych.</p>
+<p>Postanowiono dodatkowo zbadać dwie podgrupy danych dla pytań najlepiej oraz najgorzej ocenianych. Wyodrębniono po 100 pytań z każdej z grup. Wyniki dla tych grup przestwationo na <a href="#fig-ryc5">Rys.&nbsp;<span>3.6</span></a> (dolny panel) oraz w <a href="#tbl-q_stats_types">Tab.&nbsp;<span>3.7</span></a> i <a href="#tbl-score_stats_types">Tab.&nbsp;<span>3.8</span></a>.</p>
+<p>W podgrupie najlepiej ocenianych pytań średnia ocena wyniosła 20.6 +/- 8.5 a w podgrupie najgorzej ocenianych 0.4 +/- 1.2. Rozdzielność tych statystyk dla tych grup była oczekiwanym wynikiem.</p>
+<p>Statystyki długości pytań nie odbiegają od siebie w znaczący sposób (średnie 349 +/- 275 najlepiej oceniane oraz 389 +/- 424 najgorzej oceniane) sugerując iż to długość pytania nie ma znaczącego wpływu na jego ocenę.</p>
+<div class="cell" data-execution_count="27">
+<div class="cell-output cell-output-display" data-execution_count="27">
+<div id="fig-ryc5" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc5-output-1.png" width="2422" height="1556" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.6: Oceny pytań (score) na forum w zależności od ilości znaków zawartych w pytaniu</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="28">
+<div class="cell-output cell-output-display" data-execution_count="28">
+<div id="tbl-q_stats_types" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.7:  Statystyki długości postów z podziałem na podgrupy najlepszych (type=top) i najgorszych pytań (type=bottom) </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>type</th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>max</th>
+      <th>min</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>top</td>
+      <td>349.08</td>
+      <td>275.088587</td>
+      <td>1823</td>
+      <td>46</td>
+      <td>261</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>bottom</td>
+      <td>389.26</td>
+      <td>424.654836</td>
+      <td>3133</td>
+      <td>30</td>
+      <td>270</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="29">
+<div class="cell-output cell-output-display" data-execution_count="29">
+<div id="tbl-score_stats_types" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.8:  Statystyki ocen użytkowników z podziałem na podgrupy najlepszych (type=top) i najgorszych pytań (type=bottom) </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>type</th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>max</th>
+      <th>min</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>top</td>
+      <td>20.6</td>
+      <td>8.551685</td>
+      <td>68</td>
+      <td>14</td>
+      <td>18</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>bottom</td>
+      <td>0.4</td>
+      <td>1.206045</td>
+      <td>1</td>
+      <td>-7</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<p>Zauważono również że najlepiej oceniane pytania są również częściej oglądane i mają więcej odpowiedzi niż pytania najgorzej oceniane (<a href="#fig-ryc6">Rys.&nbsp;<span>3.7</span></a>). Najlepiej oceniane pytania mają średnio 4 odpowiedzi podczas gdy najgorzej jedynie 1 (<a href="#tbl-answers_stats_types">Tab.&nbsp;<span>3.9</span></a>) oraz odpowiednio średnio 26289 i 475 wyświetleń (<a href="#tbl-views_stats_types">Tab.&nbsp;<span>3.10</span></a>)</p>
+<div class="cell" data-execution_count="31">
+<div class="cell-output cell-output-display" data-execution_count="31">
+<div id="fig-ryc6" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc6-output-1.png" width="1128" height="729" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.7: Liczba odpowiedzi oraz oceny najlepiej (type=top) oraz najgorzej (type=bottom) ocenianych pytań w zależności od liczby ich wyświetleń</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="32">
+<div class="cell-output cell-output-display" data-execution_count="32">
+<div id="tbl-answers_stats_types" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.9:  Statystyki ilości odpowiedzi na pytania z podziałem na podgrupy najlepszych (type=top) i najgorszych (type=bottom) pytań </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>type</th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>max</th>
+      <th>min</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>top</td>
+      <td>3.96</td>
+      <td>2.581676</td>
+      <td>17</td>
+      <td>1</td>
+      <td>3</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>bottom</td>
+      <td>1.28</td>
+      <td>0.964836</td>
+      <td>4</td>
+      <td>0</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<div class="cell" data-execution_count="33">
+<div class="cell-output cell-output-display" data-execution_count="33">
+<div id="tbl-views_stats_types" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.10:  Statystyki ilości wyświetleń pytań z podziałem na podgrupy najlepszych (type=top) i najgorszych (type=bottom) pytań </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>type</th>
+      <th>średnia</th>
+      <th>odchylenie standardowe</th>
+      <th>max</th>
+      <th>min</th>
+      <th>mediana</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>top</td>
+      <td>26047.65</td>
+      <td>76276.200191</td>
+      <td>648941</td>
+      <td>175</td>
+      <td>4715</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>bottom</td>
+      <td>495.56</td>
+      <td>1220.756292</td>
+      <td>9124</td>
+      <td>3</td>
+      <td>141</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-tags" class="level2" data-number="3.5">
+<h2 data-number="3.5" class="anchored" data-anchor-id="sec-tags"><span class="header-section-number">3.5</span> Analiza znaczników (tagów)</h2>
+<p>W celu identyfikacji tematów zapytań na forum przeanalizowano słowa kluczowe, którymi oznaczano pytania. Wyniki przedstawiono w postaci wykresu typu “Chmura słów” <a href="#fig-ryc7">Rys.&nbsp;<span>3.8</span></a>. Okazuje się, że użytkownicy najczęściej pytali o <code>wina</code> (134, ang. <em>wine</em>), <code>smak</code> (120, ang. <em>taste</em>), <code>historię</code> (85, ang. <em>history</em>) i o <code>rekomendacje</code> (76, ang. <em>recommandation</em>).</p>
+<p>Tę samą analizę wykonano na grupie 100 najlepiej i najgorzej ocenianych pytań badanych w <a href="#sec-qstats"><span>Sekcja&nbsp;3.4</span></a>. W pierwszej grupie najczęściej używano znaczników <code>smak</code> (17) oraz <code>warzenie</code> (14, ang. <em>brewing</em>), w drugiej natomiast najczęściej pytano o <code>wina</code> (20), <code>rekomendacje</code> (15) i <code>zdrowie</code> (12, ang. <em>health</em>).</p>
+<div class="cell" data-execution_count="35">
+<div class="cell-output cell-output-display">
+<div id="fig-ryc7" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc7-output-1.png" width="403" height="211" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.8: Chmura słów przedstawiająca najczęściej używane znaczniki na forum</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Następnie sprawdzono, które ze znaczników nie tylko były najczęściej używane, lecz które generowały najwięcej wyświetleń. W tym celu zsumowano liczbę wyświetleń wszystkich zapytań na forum, w którym pojawił się dany znacznik (<a href="#tbl-tags_views">Tab.&nbsp;<span>3.11</span></a>). Znaczniki <code>taste</code> oraz <code>health</code> generują najwięcej wyświetleń na tym forum w ilości 1349051 oraz 1316064, na dalszych miejscach znajdują się znaczniki <code>preservation</code> (686106), <code>storage</code> (558949) oraz <code>whiskey</code>(470841).</p>
+<div class="cell" data-execution_count="39">
+<div class="cell-output cell-output-display" data-execution_count="39">
+<div id="tbl-tags_views" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.11:  Sumaryczne ilości wyświetleń wiadomości zawierających dany znacznik. Przedstawiono 10 najpopularniejszych znaczników. </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>tag</th>
+      <th>liczba wyświetleń sumarycznie</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>taste</td>
+      <td>1330670</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>health</td>
+      <td>1286001</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>preservation</td>
+      <td>682216</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>storage</td>
+      <td>542860</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>whiskey</td>
+      <td>464756</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>bourbon</td>
+      <td>330268</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>brewing</td>
+      <td>307892</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>ipa</td>
+      <td>291935</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>spirits</td>
+      <td>255328</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>drinking</td>
+      <td>225924</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<p>Zbadano również czy wykorzystanie najczęściej używanych znaczników zmieniało się w czasie istnienia forum. Z danych zaprezentowanych na <a href="#fig-ryc8">Rys.&nbsp;<span>3.9</span></a> można zaobserwować że niektóre znaczniki takie jak <code>spirits</code>, <code>bourbon</code> czy <code>whiskey</code> zaczęły być używane dopiero około roku 2016 - około 2 lata po pierwszej wiadomości na forum. W danych zauważono również, że częstość używania znaczników jest skokowa. Może to być związane z ogólną małą ilością postów zamieszczanych na forum. Wyjątek stanowią najpopularniejsze znaczniki, takie jak <code>taste</code> czy <code>health</code>, których częstość występowania jest bardziej regularna.</p>
+<div class="cell" data-execution_count="44">
+<div class="cell-output cell-output-display" data-execution_count="44">
+<div id="fig-ryc8" class="quarto-figure quarto-figure-center anchored">
+<figure class="figure">
+<p><img src="02_analytics_files/figure-html/fig-ryc8-output-1.png" width="2349" height="1795" class="figure-img"></p>
+<p></p><figcaption class="figure-caption">Rys.&nbsp;3.9: Liczba postów w czasie dla każdego z najczęściej wyświetlanych znaczników. Wartości zagregowane na poziomie miesięcy. Górny panel przedstawia wartości miesięczne, dolny natomiast miesięczną sumę kumulatywną.</figcaption><p></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="sec-titles" class="level2" data-number="3.6">
+<h2 data-number="3.6" class="anchored" data-anchor-id="sec-titles"><span class="header-section-number">3.6</span> Analiza tytułów postów</h2>
+<p>Dodatkową metodą, oprócz analizy znaczkików, którą można wykorzystać w celu zbadania tematów poruszanych na forum może być analiza najczęściej pojawiających się słów. Można do tego wykorzystać treść tytułów wiadomości jak i ich główną treść. W niniejszej pracy skupiono się na analizie treści tytułów wiadomości, jako że bardzo często zawierają one dużo słów kluczowych.</p>
+<p>Tytuły wiadomości są nieustrukturyzowanymi ciągami znaków, z tego powodu do ich analizy wykorzystano powszechnie używane narzędzia stosowane przy analizach NLP (ang. <em><strong>N</strong>atural <strong>L</strong>anguage <strong>P</strong>rocessing</em>). Proces zastosowanej tutaj analizy tekstu składał się z 4 kroków:</p>
+<ol type="1">
+<li>Wyodrębnienia tokenów</li>
+<li>Usunięcia tokenów o długości znaku 1</li>
+<li>Usunięcia tokenów nie niosących informacji o treści (ang. <em>stop words</em>)</li>
+<li>Ujednolicenia różych form danego wyrazu poprzez zabieg stemming’u (ang. <em>stemming</em>), mającego na celu ucinanie końcówek wyrazów (tokenów) i pozostawieniu jedynie jego wartości bazowej.</li>
+</ol>
+<p>Przykładowa tabela wizualizująca tokeny surowe w porównaniu do tokenów po odfiltrowaniu słów typu <code>stop words</code> oraz tokenów krótszych niż 1 zaprezentowano na <a href="#tbl-tokens">Tab.&nbsp;<span>3.12</span></a></p>
+<div class="cell" data-execution_count="46">
+<div class="cell-output cell-output-display" data-execution_count="46">
+<div id="tbl-tokens" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.12:  Przykładowe rekordy danych wizualizujące proces przetwarzania tekstu. Kolejność chronologiczna kolumn title –&gt; words_token –&gt; words_no_stop –&gt; words_stem </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>0</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>title</th>
+      <td>What is a citra hop, and how does it differ from other hops?</td>
+    </tr>
+    <tr>
+      <th>words_token</th>
+      <td>[what, is, citra, hop, and, how, does, it, differ, from, other, hops]</td>
+    </tr>
+    <tr>
+      <th>words_no_stop</th>
+      <td>[citra, hop, differ, hops]</td>
+    </tr>
+    <tr>
+      <th>words_stem</th>
+      <td>[citra, hop, differ, hop]</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<p>Dzięki zabiegowi stemmingu otrzymywany jest bardziej jednorodny zestaw danych. Liczba unikalnych tokenów została zredukowana z 2055 do 1680.</p>
+<p>Następnie zliczono, które tokeny pojawiają się w największej ilości tytułów i zaprezentowano w <a href="#tbl-tokens_count">Tab.&nbsp;<span>3.13</span></a>. Najczęściej używanymi tokenami były tokeny <code>beer</code> (476), <code>wine</code> (152) oraz <code>drink</code> (105). Wyniki pozostają w zgodzie z wnioskami uzyskanymi poprzez analizę znaczników.</p>
+<div class="cell" data-execution_count="49">
+<div class="cell-output cell-output-display" data-execution_count="49">
+<div id="tbl-tokens_count" class="anchored">
+
+<div>
+
+<table class="dataframe table table-sm table-striped"><caption>Tab.&nbsp;3.13:  Zliczenia tokenów słów najczęściej pojawiających się w tytułach postów (15 najliczniejszych) </caption>
+  <thead>
+    <tr>
+      <th></th>
+      <th>words</th>
+      <th>count</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>beer</td>
+      <td>476</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>wine</td>
+      <td>147</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>drink</td>
+      <td>104</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>alcohol</td>
+      <td>88</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td>differ</td>
+      <td>72</td>
+    </tr>
+    <tr>
+      <th>5</th>
+      <td>bottl</td>
+      <td>68</td>
+    </tr>
+    <tr>
+      <th>6</th>
+      <td>use</td>
+      <td>50</td>
+    </tr>
+    <tr>
+      <th>7</th>
+      <td>tast</td>
+      <td>47</td>
+    </tr>
+    <tr>
+      <th>8</th>
+      <td>brew</td>
+      <td>43</td>
+    </tr>
+    <tr>
+      <th>9</th>
+      <td>make</td>
+      <td>41</td>
+    </tr>
+    <tr>
+      <th>10</th>
+      <td>good</td>
+      <td>33</td>
+    </tr>
+    <tr>
+      <th>11</th>
+      <td>cocktail</td>
+      <td>29</td>
+    </tr>
+    <tr>
+      <th>12</th>
+      <td>age</td>
+      <td>27</td>
+    </tr>
+    <tr>
+      <th>13</th>
+      <td>ale</td>
+      <td>26</td>
+    </tr>
+    <tr>
+      <th>14</th>
+      <td>recommend</td>
+      <td>26</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    target: function(trigger) {
+      return trigger.previousElementSibling;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Skopiowano!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Skopiowano!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./01_preprocessing.html" class="pagination-link">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Wstępna obróbka danych</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./summary.html" class="pagination-link">
+        <span class="nav-page-text">WNIOSKI I ZAKOŃCZENIE</span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+</body></html>

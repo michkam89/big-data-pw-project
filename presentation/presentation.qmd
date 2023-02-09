@@ -1,0 +1,200 @@
+---
+format:
+#   revealjs: 
+#     theme: [mytheme.css, simple]
+  beamer: 
+    theme: default   
+language: ../_language.yml
+title: |
+    Wieloskalowa analiza danych 
+subtitle: z forum internetowego przy użyciu zasobów infrastruktury chmurowej AWS oraz technologii Spark
+author: Michał Kamiński
+---
+
+# Cel pracy
+
+- Szybkie i powtarzalne dostarczenie infrastruktury do wykonywania analiz na klastrze obliczeniowym `AWS EMR`
+- Demonstracja użycia ww. infrastruktury przy użyciu technologii `Spark` 
+
+# Infrastruktura i dane
+
+## Dane
+
+- Forum internetowe _Beer, Wine and Spirits_ [^1]
+- 6 zbiorów danych w formacie `xml`, połączonych kluczami
+- Całkowity rozmiar ~20MB
+- Dane z ~8,5 lat, 3700 postów
+
+[^1]: Źródło - https://stackexchange.com/
+
+-----
+
+## Schemat infrastruktury
+
+```{python}
+#| eval: false
+from diagrams import Node, Edge, Cluster, Diagram
+from diagrams.aws.compute import EC2
+from diagrams.aws.analytics import EMRCluster
+from diagrams.aws.storage import S3
+from diagrams.aws.devtools import Cloud9
+#import warnings
+#warnings.filterwarnings("ignore")
+with Diagram("", show=False, filename="schema_simple") as diag:
+    
+    with Cluster("AWS VPC", direction="LR"):
+        c9 = Cloud9("Cloud9") 
+        emr = EMRCluster("EMR")
+        data = S3("S3")
+
+        c9 >> Edge(label="dane xml + \n pliki konfiguracyjne") >> data 
+        data >> Edge(label="dane surowe + \n dane przetworzone  + \n notebooki + \n logi", reverse=True) >> emr
+```
+
+![](schema_simple.png){fig-align="center"}
+
+```{mermaid}
+%%| eval: false
+%%| include: false
+%%| fig-width: 10
+graph LR
+    subgraph chmura AWS
+        cloud9 -->|dane xml| S3 <-->|"dane surowe +<br>dane wstępne+<br>pozostałe"| EMR
+    end
+```
+
+- `Cloud9` jako środowisko konfiguracyjne
+- 5 koszyków danych `S3` (dane xml, dane wstępne, repozytorium notebooków, repozytorium logów, pliki konfiguracyjne)
+- Klaster `EMR` (1 MASTER, 2 CORE)
+
+-----
+
+## Wstępne przetwarzanie (pySpark)
+
+1. Wczytanie danych xml - `spark-xml_2.12:0.15.0`
+2. Utworzenie schematów danych
+3. Czyszczenie danych tekstowych (tagi html, znaki specjalne) ^[np. \<p\>, \\n, \\t, \\s]
+4. Zapis w formacie `parquet`
+
+::: {.callout-note}
+50% redukcja rozmiaru danych (`xml` vs `parquet`)
+:::
+
+# Analiza (pySpark)
+
+## Aktywność na forum
+
+:::: {.columns}
+
+::: {.column width="40%"}
+![Liczba postów w czasie](fig-ryc2-output-1.png)
+:::
+
+::: {.column width="60%" }
+![Stosunek pytań do odpowiedzi w czasie](fig-ryc3-output-1.png)
+:::
+
+::::
+
+- średnio co drugie pytanie otrzymywało odpowiedź (0.47 +/- 0.22)
+
+-----
+
+## Statystyki postów
+
+![Rozkład ocen](fig-ryc9-output-1.png)
+
+| is_accepted | średnia    | std| min | max | mediana |
+|-------------|------------|-----------------------|-----|-----|---------|
+| True        | 6.40   | 5.92              | 0   | 46  | 5       |
+| False       | 2.58  | 2.74              | -4  | 26  | 2       |
+| None        | 2.76   | 3.18              | -5  | 30  | 2       |
+
+-----
+
+![Czas do akceptacji odpowiedzi](fig-ryc10-output-1.png)
+
+- Po odrzuceniu wartości odstających średni czas do akceptacji wyniósł ~66,5h (mediana 10,5h)
+
+-----
+
+:::: {.columns}
+
+::: {.column width="50%"}
+
+![Wartość score w porównaniu do długości pytania](fig-ryc5-output-1.png)
+
+:::
+
+::: {.column width="50%" text-align="center"}
+
+- najlepsze pytania (top) - średnia ocen 20.6 oraz 4 odpowiedzi
+- najgorsze pytania (bottom) - średnia ocen 0.4 oraz 1 odpowiedź
+
+
+:::
+
+::::
+
+-----
+
+## Analiza tematów postów - tagi
+
+:::: {.columns}
+
+::: {.column width="30%"}
+\tiny
+
+|tag |liczba wyświetleń|
+|----|----------------------------:|
+|taste |1 330 670|
+|health |1 286 001|
+|preservation |682 216|
+|storage |542 860|
+|whiskey |464 756|
+|bourbon |330 268|
+|brewing |307 892|
+|ipa |291 935|
+|spirits |255 328|
+|drinking |225 924|
+
+\normalsize
+:::
+
+::: {.column width="70%" }
+
+![](fig-ryc7-output-1.png)
+
+:::
+
+::::
+
+![](fig-ryc8-output-1.png)
+
+-----
+
+## Analiza tematów postów - tytuły
+\small
+|etap|przykład|
+|------|----------------|
+|(1) tytuł |What is a citra hop, and how does it differ from other hops?|
+|(2) token |[what, is, citra, hop, and, how, does, it, differ, from, other, hops]|
+|(3) -- stop words |[citra, hop, differ, hops]|
+|(4) stemming |[citra, hop, differ, hop]|
+
+
+
+|stem| ilość wystąpień|
+|------|------|
+|beer| 476|
+|wine| 147|
+|drink| 104|
+|alcohol| 88|
+|differ| 72|
+|bottl| 68|
+
+# Podsumowanie
+
+- Podstawowa infrastruktura - możliwe łatwe i szybkie skalowanie, optymalizacja sposobu przechowywania danych
+
+- Otrzymane wyniki mogą posłużyć do dalszej analizy przyczyn spadającej aktywności na forum
